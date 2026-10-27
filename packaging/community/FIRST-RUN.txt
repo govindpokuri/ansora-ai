@@ -1,0 +1,39 @@
+ANSORA AI COMMUNITY - WINDOWS x64 PORTABLE PREVIEW
+
+Source: https://github.com/govindpokuri/ansora-ai
+MIT licensed. No hosted Ansora purchase is required. Your AI provider may charge.
+
+1. Verify the ZIP's SHA-256 against SHA256SUMS.txt from the GitHub release.
+2. Extract the COMPLETE ZIP to a writable folder. Do not run inside the ZIP.
+3. Windows 11 x64 is the supported target. Install Microsoft's Visual C++ x64
+   runtime if missing. The supplied Install-Prerequisites.ps1 downloads the
+   official Microsoft installer, checks its signature, and opens interactive
+   setup. Review Microsoft's license/UAC prompts yourself.
+4. Review the scripts. If Windows marks the downloaded ZIP as blocked, use its
+   Properties > Unblock before extracting, after checking its origin/checksum.
+   Corporate script policies may require help from your administrator; do not
+   disable endpoint protection or your organization's security policy.
+5. Double-click Start.cmd, or run .\run-community.ps1 in PowerShell.
+   It downloads the English Whisper model separately (about 148 MB) on first
+   use, checks its SHA-256, and keeps it in models/ beside the app. The first
+   download requires Internet access. Repeated setup reuses a verified model.
+6. Enter YOUR full chat-completions URL, deployment/model name, and Bearer or
+   api-key authentication. Azure endpoints may require an api-version query.
+   The API-key prompt is hidden. The app encrypts the key for your Windows user.
+7. Select the call's speakers/headphones under Options > Settings. Use Start
+   listening with permitted caller audio. This app does not transcribe your mic.
+
+The ZIP includes .NET, so the .NET SDK is not required. Keep all supporting DLLs.
+After first-time configuration you may open AnsoraAI.exe directly; use Start.cmd
+again if you need to change the AI endpoint/key. Close other copies first to
+avoid shortcut conflicts. This is an unsigned Community preview, not the paid
+service installer. There is no guarantee of compatibility with all devices.
+
+Ctrl+Alt+L: start/stop listening. Ctrl+Alt+H: hide/show. Ctrl+Alt+Q: exit.
+AI requests need Internet access and your own provider access. No free AI tokens
+are bundled. The model and downloaded Microsoft prerequisite are not in the ZIP.
+Calls may autosave to Documents/Ansora AI Community/Calls. Review/delete sensitive
+records when appropriate. Obtain consent; use assistance only where permitted.
+
+Report bugs with fictional data: https://github.com/govindpokuri/ansora-ai/issues
+Optional donations: https://razorpay.me/@ansoraai

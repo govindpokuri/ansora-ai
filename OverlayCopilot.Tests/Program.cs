@@ -52,6 +52,7 @@ internal static class Program
             if (args.Contains("--stream-recovery-check")) { VerifyStreamRecovery(); return 0; }
             if (args.Contains("--options-ui-check")) { RenderWindow(true); return 0; }
             if (args.Contains("--ui-check")) { RenderWindow(); return 0; }
+            if (args.Contains("--readme-demo")) { RenderReadmeDemo(); return 0; }
             if (args.Contains("--commercial-check")) { VerifyCommercialAsync().GetAwaiter().GetResult(); return 0; }
             if (args.Contains("--account-ui-check")) { VerifyAccountUi(); return 0; }
             if (args.Contains("--manual-check")) { VerifyManualQuestion(); return 0; }
@@ -546,6 +547,46 @@ internal static class Program
         using (var file = File.Create("artifacts/manual-question-preview.png")) encoder.Save(file);
         window.Close();
     }
+    private static void RenderReadmeDemo()
+    {
+        // Render real WPF controls with synthetic text. Do not show a native
+        // window, start capture, load a real call, or send a provider request.
+        var app = new App(); app.InitializeComponent();
+        var window = new MainWindow { Title = "Ansora AI Community", Width = 1060, Height = 760 };
+        typeof(MainWindow).GetMethod("LoadSettings", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(window, new object[] { new AppSettings() });
+        ((System.Windows.Controls.TextBlock)window.FindName("CandidateStatus")).Text = "Demo profile · C# / SQL";
+        ((System.Windows.Controls.TextBlock)window.FindName("MinutesLeft")).Text = "Illustrative demo · fictional content";
+        ((System.Windows.Controls.TextBlock)window.FindName("DraftText")).Text = "Sample caller transcript · no live audio captured";
+        ((System.Windows.Controls.Button)window.FindName("ListenButton")).Content = "Start listening";
+        ((System.Windows.Controls.TextBlock)window.FindName("CallerQuestionText")).Text = "What is dependency injection?";
+        ((System.Windows.Controls.TextBlock)window.FindName("AnswerQuestionText")).Text = "What is dependency injection?";
+        ((System.Windows.Controls.TextBox)window.FindName("TranscriptBox")).Text = "Caller: What is dependency injection?";
+        var answer = (System.Windows.Controls.TextBox)window.FindName("AnswerBox");
+        var root = (FrameworkElement)window.Content;
+        Directory.CreateDirectory("docs/assets");
+        void Save(string name)
+        {
+            window.RefreshAnswerPresentation();
+            root.Measure(new Size(1058, 758)); root.Arrange(new Rect(0, 0, 1058, 758)); root.UpdateLayout();
+            var bitmap = new RenderTargetBitmap(1058, 758, 96, 96, PixelFormats.Pbgra32); bitmap.Render(root);
+            var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var file = File.Create("docs/assets/" + name); encoder.Save(file);
+        }
+        ((System.Windows.Controls.TextBlock)window.FindName("AnswerStatus")).Text = "Writing";
+        answer.Text = "Waiting for a suggested answer…"; Save("app-question.png");
+        ((System.Windows.Controls.TextBlock)window.FindName("AnswerStatus")).Text = "Ready to read";
+        answer.Text = "I pass a class the objects it needs, instead of creating them inside. This makes testing and changes easier.";
+        Save("app-answer.png");
+        ((System.Windows.Controls.TabControl)window.FindName("QuestionTabs")).SelectedIndex = 1;
+        ((System.Windows.Controls.TextBox)window.FindName("ManualQuestionBox")).Text = "Write a C# function to check whether a string is a palindrome.";
+        ((System.Windows.Controls.TextBlock)window.FindName("AnswerQuestionText")).Text = "Check a palindrome in C# (exact character match).";
+        answer.Text = "Case-sensitive; spaces and punctuation count.\n\n```csharp\nusing System.Linq;\n\nbool IsPalindrome(string value)\n{\n    return value.SequenceEqual(value.Reverse());\n}\n```";
+        Save("app-code.png");
+        window.Close(); app.Shutdown();
+        Console.WriteLine("Rendered three actual-UI screenshots with fictional content. No network/audio request was made.");
+    }
+
     private static void RenderWindow(bool showOptions = false, bool showBadge = false)
     {
         var app = new App(); app.InitializeComponent();
@@ -888,7 +929,7 @@ For example, a desktop app might use a worker thread for a long calculation so t
         timer.Tick+=(_,_)=> { timer.Stop(); watch.Start(); window.Close(); };
         window.Closed+=(_,_)=> {
             Check(watch.Elapsed<TimeSpan.FromSeconds(2),"window closes promptly while saving a call");
-            var path=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Ansora AI","Calls",$"call-{archive.Id:N}.html");
+            var path=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Ansora AI Community","Calls",$"call-{archive.Id:N}.html");
             Check(File.Exists(path) && File.ReadAllText(path).Contains("Saved answer"),"close preserves the latest transcript and answer without export");
             Console.WriteLine($"Close completed in {watch.Elapsed.TotalMilliseconds:F0} ms."); app.Shutdown();
         };

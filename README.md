@@ -3,11 +3,36 @@
 **Live caller transcription, concise answer suggestions, and resume-aware coding help for Windows.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Build and validate](https://github.com/govindpokuri/ansora-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/govindpokuri/ansora-ai/actions/workflows/ci.yml)
+[![Windows Community preview](https://img.shields.io/badge/Windows-Community_preview-137f76)](https://github.com/govindpokuri/ansora-ai/releases/tag/v0.1.14-community.1)
+
+**[Download the Windows portable preview](https://github.com/govindpokuri/ansora-ai/releases/download/v0.1.14-community.1/AnsoraAI-Community-0.1.14-community.1-win-x64.zip)** ·
+[Setup guide](docs/WINDOWS_QUICKSTART.md) · [How it works](docs/TECHNICAL_WALKTHROUGH.md) ·
+[Contribute](CONTRIBUTING.md) · [Donate](https://razorpay.me/@ansoraai)
 
 Bring your own chat-completions endpoint and API credentials, or self-host the
 optional PHP backend. No hosted Ansora purchase is required for direct mode.
 AI provider charges still apply. This repository contains no API keys, customer
 data, speech-model weights, or prebuilt commercial installers.
+
+## See the app
+
+![Actual Ansora AI Community UI showing a sample caller question, an answer suggestion, and a pasted C# problem](docs/assets/demo.gif)
+
+*Illustrative demo rendered from the real WPF interface using fictional content.
+It is not a live call recording or a response-time benchmark.*
+
+[Full-resolution answer screenshot](docs/assets/app-answer.png) ·
+[Coding screenshot](docs/assets/app-code.png)
+
+## Try the Windows preview — no SDK required
+
+Download and verify the [portable ZIP and SHA-256 checksum](https://github.com/govindpokuri/ansora-ai/releases/tag/v0.1.14-community.1),
+extract the complete folder, and run `Start.cmd`. Setup asks for your AI endpoint,
+model and hidden API key, then downloads/checks the English speech model separately
+(about 148 MB). The ZIP includes .NET; Microsoft Visual C++ x64 may still be needed.
+Windows 11 x64 is the tested target. This is an **unsigned Community preview**.
+See the [first-run guide and troubleshooting](docs/WINDOWS_QUICKSTART.md).
 
 ## Features
 
@@ -16,6 +41,9 @@ data, speech-model weights, or prebuilt commercial installers.
 - Pasted questions and coding problems.
 - PDF, DOCX or text resume analysis with a reviewed experience/language profile.
 - Movable, resizable overlay with adjustable background opacity and shortcuts.
+- **Screen-share privacy:** keeps the overlay out of supported Windows captures.
+  **Maintainer-tested with Zoom, Google Meet and Microsoft Teams.** See the
+  [compatibility notes](docs/SCREEN_SHARE_PRIVACY.md) and verify your sharing mode.
 - Local call references and HTML/JSON exports with token usage.
 
 Use it for practice, accessibility and conversations where assistance is permitted.
@@ -87,6 +115,14 @@ Read [self-hosting](docs/SELF_HOSTING.md), [configuration](docs/CONFIGURATION.md
 [architecture](docs/ARCHITECTURE.md), and [releases](docs/RELEASING.md).
 Replace the example website's domain, offer, prices, policies, support/business
 details and promotional content before deployment.
+
+## Help improve Ansora
+
+Looking for a first contribution? Browse [good first issues](https://github.com/govindpokuri/ansora-ai/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
+or [help wanted](https://github.com/govindpokuri/ansora-ai/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22).
+Useful areas include first-run audio guidance, keyboard accessibility, reproducible
+transcription examples, and provider compatibility. Please use fictional or
+consented/generated data, and include the relevant environment and validation.
 
 ## Privacy
 

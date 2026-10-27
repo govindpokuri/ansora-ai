@@ -23,7 +23,7 @@ for p in paths:
         '.dpapi', '.pfx', '.p12', '.pem', '.key', '.exe', '.zip', '.rar', '.sqlite', '.db'}:
         failures.append(f'{p.relative_to(root)}: private/generated file must not be tracked')
         continue
-    if p.suffix in {'.png', '.ico'}:
+    if p.suffix in {'.png', '.ico', '.gif'}:
         continue
     try:
         text = p.read_text(encoding='utf-8-sig')

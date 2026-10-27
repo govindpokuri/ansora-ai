@@ -7,7 +7,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.1.13</Version>
+    <Version>0.1.14</Version>
+    <InformationalVersion>0.1.14-community.1</InformationalVersion>
     <ApplicationIcon>Assets\ansora.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup><Resource Include="Assets\ansora.ico" /></ItemGroup>

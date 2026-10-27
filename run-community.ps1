@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
-$settingsFile = Join-Path $PSScriptRoot 'OverlayCopilot/settings.defaults.json'
+$portableBinary = Join-Path $PSScriptRoot 'AnsoraAI.exe'
+$portable = Test-Path -LiteralPath $portableBinary
+$settingsFile = if ($portable) { Join-Path $PSScriptRoot 'settings.defaults.json' } else { Join-Path $PSScriptRoot 'OverlayCopilot/settings.defaults.json' }
 $settings = Get-Content -LiteralPath $settingsFile -Raw | ConvertFrom-Json
 $url = Read-Host 'Full HTTPS chat-completions URL (Enter keeps current)'
 if ($url.Trim()) { $settings.AnswerUrl = $url.Trim() }
@@ -18,8 +20,14 @@ if ($settings.AnswerAuth -notin @('Bearer', 'api-key')) { throw 'Choose Bearer o
 $settings.CommercialMode = $false
 $settings.CommercialBaseUrl = ''
 $settings | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $settingsFile -Encoding utf8
-& dotnet build OverlayCopilot/OverlayCopilot.csproj -c Release
-if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+if (-not $portable) {
+    & dotnet build OverlayCopilot/OverlayCopilot.csproj -c Release
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+}
+if ($portable) {
+    # No SDK is needed in the self-contained portable release.
+    & (Join-Path $PSScriptRoot 'download-model.ps1')
+}
 $secureKey = Read-Host 'Your AI API key (hidden; Enter reuses the saved key)' -AsSecureString
 $oldKey = [Environment]::GetEnvironmentVariable('OVERLAYCOPILOT_AI_KEY', 'Process')
 $pointer = [IntPtr]::Zero
@@ -30,7 +38,7 @@ try {
         [Environment]::SetEnvironmentVariable('OVERLAYCOPILOT_AI_KEY', $processKey, 'Process')
         $processKey = $null
     }
-    $binary = Join-Path $PSScriptRoot 'OverlayCopilot/bin/Release/net9.0-windows/AnsoraAI.exe'
+    $binary = if ($portable) { $portableBinary } else { Join-Path $PSScriptRoot 'OverlayCopilot/bin/Release/net9.0-windows/AnsoraAI.exe' }
     # Saved UI settings override defaults, so update only the Community profile.
     $profileDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'AnsoraAICommunity'
     $profileFile = Join-Path $profileDir 'settings.json'
