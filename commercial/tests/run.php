@@ -1,0 +1,83 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/bootstrap.php';
+use CueMitra\{Store,Auth,Payments,Ai,Problem};
+$c=commercial_config();
+if($c['environment']!=='development' || !str_contains($c['dsn'],'cuemitra_test'))die("Tests require the isolated development database.\n");
+$s=new Store($c); $auth=new Auth($s,$c); $payments=new Payments($s,$c); $passed=0;
+function check(bool $condition,string $name): void { global $passed; if(!$condition)throw new \RuntimeException('FAIL: '.$name); $passed++; echo 'PASS: '.$name."\n"; }
+function rejects(callable $fn,int $status,string $name): void { try { $fn(); } catch(Problem $e) { check($e->status===$status,$name); return; } throw new \RuntimeException('FAIL: '.$name); }
+function loginFixture(Auth $auth): array {
+    $ticket=$auth->start('candidate-'.\CueMitra\id().'@example.test',\CueMitra\id());
+    $mail=json_decode(file_get_contents(dirname(__DIR__).'/storage/outbox/'.$ticket['challenge'].'.json'),true);
+    return [$auth->verify($ticket['challenge'],$mail['code'],'desktop',\CueMitra\id()),$ticket,$mail];
+}
+[$session,$ticket,$mail]=loginFixture($auth); $uid=$session['user']['id'];
+check(preg_match('/^[0-9]{6}$/',$mail['code'])===1,'email sign-in uses a six-digit expiring code');
+check($s->wallet($uid)['available']===0,'new accounts do not receive unpurchased credits');
+check($auth->user($session['token'])['email']===$session['user']['email'],'verified email creates an authenticated account');
+check($s->one('SELECT token_hash FROM sessions WHERE user_id=?',[$uid])['token_hash']!==$session['token'],'session token is stored as a hash');
+rejects(fn()=>$auth->verify($ticket['challenge'],$mail['code'],'desktop',\CueMitra\id()),401,'a sign-in code cannot be replayed');
+rejects(fn()=>$auth->user($session['token'],true),403,'customer sessions cannot enter the administrator portal');
+$badTicket=$auth->start('attempt-'.\CueMitra\id().'@example.test',\CueMitra\id());
+$badMail=json_decode(file_get_contents(dirname(__DIR__).'/storage/outbox/'.$badTicket['challenge'].'.json'),true);
+$wrong=$badMail['code']==='000000'?'111111':'000000';
+for($i=0;$i<5;$i++)rejects(fn()=>$auth->verify($badTicket['challenge'],$wrong,'desktop',\CueMitra\id()),401,'wrong code is rejected and attempt counted');
+rejects(fn()=>$auth->verify($badTicket['challenge'],$badMail['code'],'desktop',\CueMitra\id()),401,'a correct code is blocked after five failed attempts');
+$s->credit($uid,100000,'fixture:'.$uid,'Synthetic test credit');
+check(!$s->credit($uid,100000,'fixture:'.$uid,'Repeated synthetic credit'),'duplicate credit references do not add balance twice');
+rejects(fn()=>$s->reserve($uid,\CueMitra\id(),hash('sha256','x'),'test','answer',100001),402,'insufficient credits block provider requests');
+$key=\CueMitra\id(); $rid=$s->reserve($uid,$key,hash('sha256','q'),'call-1','answer',10000);
+check($s->wallet($uid)['available']===90000,'tokens are reserved before generation');
+rejects(fn()=>$s->reserve($uid,$key,hash('sha256','q'),'call-1','answer',10000),409,'duplicate request IDs cannot trigger a second provider call');
+$usage=['prompt_tokens'=>100,'completion_tokens'=>30,'total_tokens'=>130]; $s->settle($rid,$usage); $s->settle($rid,$usage);
+check($s->wallet($uid)['balance']===99870 && $s->wallet($uid)['reserved']===0,'actual usage is debited exactly once and unused reservation released');
+$unknown=$s->reserve($uid,\CueMitra\id(),hash('sha256','q2'),'call-1','answer',5000); $s->settle($unknown,null);
+check($s->wallet($uid)['reserved']===5000 && $s->one('SELECT status FROM usage_requests WHERE id=?',[$unknown])['status']==='reconcile','missing provider usage is held for reconciliation instead of becoming free usage');
+rejects(fn()=>$s->credit($uid,-99000,'unsafe:'.\CueMitra\id(),'Bad adjustment'),409,'credit adjustments cannot consume reserved tokens');
+$s->settle($unknown,['prompt_tokens'=>100,'completion_tokens'=>0,'total_tokens'=>100],false,'synthetic-provider',$uid,'Verified synthetic usage');
+check($s->wallet($uid)['reserved']===0 && $s->one("SELECT id FROM audit WHERE action='reconcile' AND target_id=?",[$unknown])!==null,'reconciliation releases holds with an atomic audit record');
+$failed=$s->reserve($uid,\CueMitra\id(),hash('sha256','q3'),'call-1','answer',2000); $balance=$s->wallet($uid)['balance']; $s->settle($failed,null,true);
+check($s->wallet($uid)['balance']===$balance && $s->wallet($uid)['reserved']===0,'known provider rejection releases credits without billing');
+check(Ai::usage(['prompt_tokens'=>100,'completion_tokens'=>20,'total_tokens'=>5])===null,'malformed usage cannot change balances');
+$purchase=\CueMitra\id(); $order='order_'.$purchase; $payment='pay_'.$purchase;
+$s->run('INSERT INTO purchases(id,user_id,order_id,amount,tokens,created_at) VALUES (?,?,?,?,?,?)',[$purchase,$uid,$order,59900,1000000,time()]);
+$fixture=$c; $fixture['razorpay_key_id']='rzp_test_fixturekey'; $fixture['razorpay_key_secret']='fixture-secret'; $fixture['razorpay_webhook_secret']='fixture-webhook-secret';
+$pay=new Payments($s,$fixture);
+$entity=['id'=>$payment,'order_id'=>$order,'status'=>'captured','amount'=>59900,'currency'=>'INR'];
+$raw=json_encode(['event'=>'payment.captured','payload'=>['payment'=>['entity'=>$entity]]]);
+rejects(fn()=>$pay->webhook($raw,'invalid'),401,'unsigned payment webhooks cannot grant credits');
+$before=$s->wallet($uid)['balance']; $signature=\CueMitra\hmac($raw,$fixture['razorpay_webhook_secret']);
+rejects(fn()=>$pay->webhook($raw.' ', $signature),401,'webhook signatures are bound to the raw body');
+$unpaid=$entity; $unpaid['status']='authorized'; check(!$pay->capture($unpaid) && $s->wallet($uid)['balance']===$before,'authorized but uncaptured checkout cannot grant tokens');
+$pay->webhook($raw,$signature); $pay->webhook($raw,$signature);
+check($s->wallet($uid)['balance']===$before+1000000,'verified payment grants one million tokens exactly once');
+$pay->confirm($uid,$order,$payment,$entity);
+check($s->wallet($uid)['balance']===$before+1000000,'checkout confirmation after the webhook succeeds without double credit');
+$wrongOrder=$entity; $wrongOrder['order_id']='order_otherpurchase';
+rejects(fn()=>$pay->confirm($uid,$order,$payment,$wrongOrder),400,'fetched payment must match the server-stored order');
+$wrongPayment=$entity; $wrongPayment['id']='pay_otherpayment';
+rejects(fn()=>$pay->confirm($uid,$order,$payment,$wrongPayment),400,'fetched payment must match the checkout payment ID');
+[$otherSession]=loginFixture($auth);
+rejects(fn()=>$pay->confirm($otherSession['user']['id'],$order,$payment,$entity),404,'another account cannot confirm the purchase');
+$closed=$fixture; $closed['environment']='production'; $closed['sales_enabled']=true;
+check(!(new Payments($s,$closed))->ready(),'test credentials cannot open production checkout');
+$closed['razorpay_key_id']='rzp_live_fixturekey'; $closed['razorpay_webhook_secret']='';
+check(!(new Payments($s,$closed))->ready(),'live checkout stays closed without its webhook secret');
+$bad=$entity; $bad['currency']='USD'; rejects(fn()=>$pay->capture($bad),422,'payment currency mismatch is rejected');
+$goodSignature=\CueMitra\hmac($order.'|'.$payment,$fixture['razorpay_key_secret']);
+check($pay->checkoutSignatureValid($order,$payment,$goodSignature),'checkout signature matches the Razorpay order and payment');
+rejects(fn()=>$pay->verify($uid,['razorpay_order_id'=>$order]),400,'incomplete payment confirmation is rejected');
+rejects(fn()=>$pay->verify($uid,['razorpay_order_id'=>$order,'razorpay_payment_id'=>$payment,'razorpay_signature'=>\CueMitra\hmac($order.'|'.$payment,'other-secret')]),400,'signature mismatch does not mark a purchase paid');
+$testCheckout=($c['environment']??'')!=='production' && str_starts_with((string)($c['razorpay_key_id']??''),'rzp_test_') && (int)$c['pack_price_paise']>=100;
+check($payments->ready()===$testCheckout,'development checkout follows the Razorpay test key and stays closed without it');
+$refund=json_encode(['event'=>'refund.created','payload'=>['refund'=>['entity'=>['payment_id'=>$payment]]]]); $pay->webhook($refund,\CueMitra\hmac($refund,$fixture['razorpay_webhook_secret']));
+rejects(fn()=>$auth->user($session['token']),403,'provider-confirmed refunds pause account access pending credit reconciliation');
+[$race]=loginFixture($auth); $raceId=$race['user']['id']; $s->credit($raceId,100000,'race:'.$raceId,'Synthetic concurrency balance');
+$processes=[];
+for($i=0;$i<2;$i++) { $pipes=[]; $p=proc_open([PHP_BINARY,__DIR__.'/reserve-worker.php',$raceId],[1=>['pipe','w'],2=>['pipe','w']],$pipes); $processes[]=[$p,$pipes]; }
+$results=[]; foreach($processes as [$p,$pipes]) { $results[]=trim(stream_get_contents($pipes[1])); fclose($pipes[1]); fclose($pipes[2]); proc_close($p); }
+sort($results); check($results===['blocked','reserved'] && $s->wallet($raceId)['reserved']===60000,'concurrent requests cannot overspend a wallet');
+$s->credit($raceId,10,'audited:'.\CueMitra\id(),'Reviewed test adjustment',$raceId);
+check($s->one("SELECT id FROM audit WHERE actor_id=? AND action='credits'",[$raceId])!==null,'administrator credit changes are auditable');
+echo "PASS: $passed commercial checks\n";

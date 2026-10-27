@@ -1,0 +1,13 @@
+<Window x:Class="OverlayCopilot.AccountWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Your account" Icon="Assets/ansora.ico" Width="490" Height="600" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True" Background="#101827" Foreground="#E8EDF7" FontFamily="Segoe UI">
+ <Border Padding="28"><StackPanel>
+  <TextBlock Text="Your account" FontSize="24" FontWeight="SemiBold"/><TextBlock Text="Use the same email as your website account. Your token balance is managed securely by the service." Foreground="#9CAEC5" FontSize="12" Margin="0,8,0,18"/>
+  <StackPanel x:Name="ServicePanel"><TextBlock Text="Service website"/><TextBox x:Name="ServerUrl"/></StackPanel>
+  <TextBlock Text="Email address"/><TextBox x:Name="EmailBox"/>
+  <TextBlock Text="By signing in, you agree to the service terms and privacy notice available on its website." Foreground="#9CAEC5" FontSize="11" Margin="0,4,0,10"/>
+  <CheckBox x:Name="AcceptTerms" Content="I have read and accept the terms and privacy notice." Margin="0,0,0,14"/>
+  <Button x:Name="SendCodeButton" Content="Send sign-in code" Click="SendCodeClick" HorizontalAlignment="Left" Margin="0,4,0,14"/>
+  <StackPanel x:Name="CodePanel" Visibility="Collapsed"><TextBlock Text="Six-digit email code"/><TextBox x:Name="CodeBox" MaxLength="6"/></StackPanel>
+  <WrapPanel><Button x:Name="SignInButton" Visibility="Collapsed" Content="Sign in" Click="SignInClick" Background="#137F76"/><Button x:Name="SignOutButton" Content="Sign out" Click="SignOutClick"/><Button Content="Website / top up" Click="WebsiteClick"/></WrapPanel>
+  <TextBlock x:Name="AccountStatus" Text="Request a code to sign in." Foreground="#85DED0" FontSize="12" Margin="0,14,0,0"/>
+ </StackPanel></Border>
+</Window>

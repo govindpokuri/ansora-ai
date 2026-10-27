@@ -1,0 +1,30 @@
+name: Build and validate
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - run: dotnet build OverlayCopilot/OverlayCopilot.csproj -c Release
+      - name: Download checksum-verified English model for speech tests
+        shell: pwsh
+        run: ./download-model.ps1
+      - run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release
+  source-and-php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scripts/check-public-source.py
+      - name: PHP syntax (integration tests require a separate database)
+        run: find commercial -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 php -l
+      - run: php commercial/tests/ai-output-limits.php

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy notice — Ansora AI</title>
+<meta name="description" content="How Ansora AI handles your account, resume, audio and call data.">
+<link rel="canonical" href="https://example.com/privacy">
+<meta name="robots" content="index,follow">
+<meta name="theme-color" content="#070b12">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Ansora AI">
+<meta property="og:locale" content="en_IN">
+<meta property="og:url" content="https://example.com/privacy">
+<meta property="og:title" content="Privacy notice — Ansora AI">
+<meta property="og:description" content="How Ansora AI handles your account, resume, audio and call data.">
+<meta property="og:image" content="https://example.com/assets/ansora-logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy notice — Ansora AI">
+<meta name="twitter:description" content="How Ansora AI handles your account, resume, audio and call data.">
+<meta name="twitter:image" content="https://example.com/assets/ansora-logo.png">
+<link rel="icon" href="/assets/ansora-mark.png" type="image/png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/glass.css">
+<script src="/assets/site.js" defer></script>
+</head>
+<body>
+<header class="nav"><a class="brand" href="/" aria-label="Ansora home"><img src="/assets/ansora-mark.png" alt="" width="52" height="36"><span data-brand>Ansora<span class="brand-ai">AI</span></span></a><nav aria-label="Main navigation"><a href="/#live">During the call</a><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/#pricing">Pricing</a><a href="/dashboard">My account</a><button class="button small" data-login>Sign in <span>↗</span></button></nav></header>
+<main class="wrap policy section">
+<h1>Privacy notice</h1>
+<h2>Your account</h2>
+<p>We store your verified email address, login sessions, purchase records and token usage metadata to operate your account. Login codes expire and session tokens are stored as hashes on the server.</p>
+<h2>Your audio and resume</h2>
+<p>Local speech recognition keeps audio on your PC. Your approved resume profile is encrypted for your Windows user. Extracted resume text, caller text and answer instructions are sent through our backend to the configured Azure AI endpoint when you request AI assistance. Provider retention policies apply.</p>
+<h2>Conversation storage</h2>
+<p>The billing database records request IDs, timestamps, purpose, provider token counts and status. It does not store the AI request or answer text. From Windows app version 0.1.11, calls are saved automatically on your PC to Documents/Ansora AI/Calls during the call, when listening stops and when you close the app. These HTML and JSON files contain recognized caller text, AI answers, usage and request context, which may include your approved resume details. Raw call audio is not saved. The saved reports are not encrypted by the app; anyone with access to these files can read them. Clearing the current call or uninstalling does not delete saved reports. Use Options → Saved calls to find and delete reports when no longer needed.</p>
+<h2>Removing data</h2>
+<p>Remove your resume profile in the desktop app to stop using it for new requests. Contact support for account-data requests. Payment and audit records may need to be retained for applicable business obligations.</p>
+<p id="operator">Operator details will be provided before purchases open.</p>
+</main>
+<footer class="footer wrap"><a class="brand" href="/"><img src="/assets/ansora-mark.png" alt="" width="40" height="28"><span data-brand>Ansora AI</span></a><p>Every Question. Your Best Answer.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/refunds">Refunds &amp; support</a></nav></footer>
+<dialog id="login-dialog"><form id="email-form"><button class="dialog-close" type="button" aria-label="Close sign in">×</button><span class="eyebrow">WELCOME TO YOUR COMPANION</span><h2>Let’s get you signed in.</h2><p>No password to remember. We’ll send a six-digit code to your email.</p><label>Email address<input id="login-email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></label><label class="consent"><input id="accept-terms" type="checkbox" required><span>I agree to the <a href="/terms">terms</a> and have read the <a href="/privacy">privacy notice</a>.</span></label><button class="button full" type="submit">Send sign-in code →</button></form><form id="code-form" hidden><button class="dialog-close" type="button" aria-label="Close sign in">×</button><span class="eyebrow">CHECK YOUR INBOX</span><h2>Your email. Your account.</h2><p id="code-message"></p><label>Six-digit code<input id="login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button class="button full" type="submit">Verify &amp; continue →</button><button class="text-link" id="use-another-email" type="button">Use another email</button></form><p id="login-feedback" role="status"></p></dialog>
+<div id="toast" role="status" hidden></div>
+</body>
+</html>

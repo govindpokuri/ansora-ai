@@ -1,0 +1,40 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/src/Ai.php';
+use CueMitra\Ai;
+$config=['azure_model'=>'gpt-4.1-mini','max_output_tokens'=>4096];
+$passed=0;
+function checkLimit(string $question,int $expected,array $extra=[],?array $config=null,array $earlier=[]): void {
+    global $passed;
+    $messages=array_merge($earlier,[['role'=>'user','content'=>$question]]);
+    $actual=Ai::outputLimit($config??$GLOBALS['config'],array_replace(['max_tokens'=>4096],$extra),$messages);
+    if($actual!==$expected)throw new RuntimeException("Expected $expected, got $actual: $question");
+    $passed++;
+}
+checkLimit('What is dependency injection?',320);
+checkLimit('What is dependency injection?',320,[],$config+['azure_model_family'=>'gpt-4.1-mini']);
+checkLimit('Write a C# program to check a palindrome',1600);
+checkLimit('Can you implement binary search?',1600);
+checkLimit('Please show the code for a palindrome checker.',1600);
+checkLimit('Write a SQL query to find duplicate emails',1600);
+checkLimit('What does this code do?',320);
+checkLimit('Explain how to implement dependency injection, no code',320);
+checkLimit("Don't write code; explain the approach",320);
+checkLimit('Generate a summary',1500,['purpose'=>'resume']);
+checkLimit('Write code',1500,['purpose'=>'resume']);
+checkLimit('Write code',100,['max_tokens'=>100]);
+checkLimit('Explain threads',64,['max_tokens'=>1]);
+checkLimit('Write code',900,[],array_replace($config,['max_output_tokens'=>900]));
+checkLimit("Answer CURRENT QUESTION.\n".json_encode(['currentQuestion'=>'What is a deadlock?','recentCallerContext'=>['Write a C# program']]),320);
+checkLimit("Answer CURRENT QUESTION.\n".json_encode(['currentQuestion'=>'Write a palindrome function','recentCallerContext'=>['Explain deadlock']]),1600);
+checkLimit("Caller: Write a Python function\nCaller: What is a deadlock?",320);
+checkLimit('Explain threads',320,[],null,[['role'=>'system','content'=>'The resume says C# code and implement functions.'],['role'=>'user','content'=>'Write code for binary search']]);
+checkLimit("Solve this coding problem or fix the supplied code. Give an approach.\n\nPasted question / problem:\nFind two items whose sum is ten.",1600);
+checkLimit("Answer this pasted question directly.\n\nPasted question / problem:\nWhat is dependency injection?",320);
+checkLimit('Explain threads',4096,[],array_replace($config,['azure_model'=>'gpt-oss-120b']));
+checkLimit('Resume',4096,['purpose'=>'resume'],array_replace($config,['azure_model'=>'gpt-oss-120b']));
+checkLimit('Explain threads',320,[],array_replace($config,['azure_model'=>'my-mini-alias','azure_model_family'=>'gpt-4.1-mini']));
+checkLimit('Explain threads',320,[],array_replace($config,['azure_model'=>'gpt-4.1-mini-2025-04-14']));
+checkLimit('Continue exactly from the last character',1600,['original_question'=>'Write a C# palindrome program']);
+checkLimit('Continue exactly from the last character',320,['original_question'=>'Explain dependency injection']);
+echo "PASS: $passed model-specific output-limit checks.\n";

@@ -1,0 +1,10 @@
+{
+  "AnswerUrl": "https://api.example.com/v1/chat/completions",
+  "AnswerModel": "YOUR-MODEL",
+  "AnswerAuth": "Bearer",
+  "MaxTokens": 4096,
+  "Temperature": 0.1,
+  "UseLocalSpeech": true,
+  "CommercialMode": false,
+  "CommercialBaseUrl": ""
+}

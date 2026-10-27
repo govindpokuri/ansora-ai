@@ -1,0 +1,28 @@
+<Window x:Class="OverlayCopilot.ResumeWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Candidate resume" Width="800" Height="740" MinWidth="650" MinHeight="580" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True" Background="#101827" Foreground="#E8EDF7" FontFamily="Segoe UI">
+ <Border Background="#101827" Padding="24"><Grid>
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <StackPanel Margin="0,0,0,14">
+   <TextBlock Text="Candidate resume" FontSize="24" FontWeight="SemiBold"/>
+   <TextBlock Text="Upload, review, then use the candidate’s real experience for new answers." Foreground="#9CAEC5" Margin="0,5,0,12"/>
+   <DockPanel><Button x:Name="UploadButton" Content="Upload &amp; analyse resume" Click="UploadClick" DockPanel.Dock="Left" Background="#137F76"/><TextBlock x:Name="SourceLabel" Text="No resume uploaded" VerticalAlignment="Center" Foreground="#B7C5D8"/></DockPanel>
+  </StackPanel>
+  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+   <StackPanel>
+    <TextBlock Text="EXPERIENCE SUMMARY" Foreground="#85DED0" FontSize="11" FontWeight="Bold" Margin="0,0,0,5"/>
+    <TextBlock Text="Check the roles, projects and achievements. Correct any inaccurate analysis before saving." Foreground="#9CAEC5" FontSize="12"/>
+    <TextBox x:Name="ExperienceBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="125" MaxHeight="200" MaxLength="6000" VerticalScrollBarVisibility="Auto"/>
+    <TextBlock Text="EXPERIENCED CODING LANGUAGES" Foreground="#85DED0" FontSize="11" FontWeight="Bold" Margin="0,12,0,5"/>
+    <TextBlock Text="Comma-separated languages you can use, for example C#, Python, SQL. Remove anything you do not know. Leave empty if none are confirmed." Foreground="#9CAEC5" FontSize="12"/>
+    <TextBox x:Name="LanguagesBox" MaxLength="1200"/>
+    <TextBlock Text="EXTRACTED RESUME · REVIEW FOR MISSING TEXT" Foreground="#85DED0" FontSize="11" FontWeight="Bold" Margin="0,12,0,5"/>
+    <TextBox x:Name="ResumeTextBox" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" Height="170" VerticalScrollBarVisibility="Auto"/>
+    <TextBlock Text="PDF (with readable text), DOCX and TXT · up to 5 MB / 20 PDF pages. Scanned PDFs need OCR first. Extracted text is sent to your configured AI endpoint for analysis and as context for answers. The approved profile is encrypted for this Windows user; the original file is not copied. Remove profile stops its use for new answers. Provider retention policies still apply." Foreground="#9CAEC5" FontSize="12" Margin="0,12,0,0"/>
+   </StackPanel>
+  </ScrollViewer>
+  <StackPanel Grid.Row="2" Margin="0,14,0,0">
+   <TextBlock x:Name="ProfileStatus" Text="Coding examples will use only your reviewed languages. Missing experience will not be invented." Foreground="#85DED0" FontSize="12" Margin="0,0,0,10"/>
+   <DockPanel><Button Content="Cancel" Click="CancelClick" DockPanel.Dock="Right" Margin="0"/><Button x:Name="SaveButton" Content="Use this profile" Click="SaveClick" DockPanel.Dock="Right" Background="#137F76"/><Button x:Name="RemoveButton" Content="Remove profile" Click="RemoveClick" HorizontalAlignment="Left"/></DockPanel>
+  </StackPanel>
+ </Grid></Border>
+</Window>
