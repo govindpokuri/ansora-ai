@@ -75,7 +75,7 @@ public sealed class CandidateProfileStore
 {
     private readonly string path;
     public CandidateProfileStore(string? path = null) => this.path = path ?? Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OverlayCopilot", "candidate-profile.dpapi");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AnsoraAICommunity", "candidate-profile.dpapi");
     public CandidateProfile? Load()
     {
         if (!File.Exists(path)) return null;

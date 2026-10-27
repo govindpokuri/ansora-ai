@@ -11,7 +11,7 @@ public sealed class CallAutoSave
     private readonly SemaphoreSlim gate = new(1,1);
     private readonly Dictionary<Guid,long> saved = new();
     public string LastPath { get; private set; } = "";
-    public CallAutoSave(string? directory = null) => this.directory = directory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Ansora AI","Calls");
+    public CallAutoSave(string? directory = null) => this.directory = directory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Ansora AI Community","Calls");
     public bool IsSaved(Guid id,long revision) { lock(saved) return saved.TryGetValue(id,out var value) && value>=revision; }
     public async Task SaveAsync(CallReport report,long revision)
     {

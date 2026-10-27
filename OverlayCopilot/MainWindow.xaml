@@ -118,7 +118,7 @@
        <TextBlock Text="AI authentication"/><ComboBox x:Name="AnswerAuth" SelectedIndex="0" Margin="0,4,0,10"><ComboBoxItem Content="api-key"/><ComboBoxItem Content="Bearer"/></ComboBox>
        </StackPanel><Button x:Name="TestAiButton" Content="Test AI connection" Click="TestAiClick" HorizontalAlignment="Left"/><TextBlock Text="Answer instructions"/><TextBox x:Name="SystemPrompt" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/>
        <Button Content="Save settings" Click="SaveSettingsClick" HorizontalAlignment="Left"/>
-       <TextBlock Text="Calls are saved automatically to Documents/Ansora AI/Calls on this PC, including transcripts, answers and request context. Delete these files when no longer needed. Local speech mode keeps audio on this PC; endpoint mode sends it to your transcription service. Questions go to your AI endpoint. Provider retention policies still apply." Foreground="#AAB9D0" FontSize="12" Margin="0,12,0,0"/>
+       <TextBlock Text="Calls are saved automatically to Documents/Ansora AI Community/Calls on this PC, including transcripts, answers and request context. Delete these files when no longer needed. Local speech mode keeps audio on this PC; endpoint mode sends it to your transcription service. Questions go to your AI endpoint. Provider retention policies still apply." Foreground="#AAB9D0" FontSize="12" Margin="0,12,0,0"/>
       </StackPanel>
      </Expander></ScrollViewer></Grid>
    </Border>

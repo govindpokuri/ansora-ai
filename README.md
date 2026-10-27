@@ -94,7 +94,7 @@ Local speech mode processes audio on your computer. Questions, context and
 resume text used for AI requests go to the configured provider/backend.
 Provider retention policies apply. Keys/profiles use Windows DPAPI; this does
 not protect against malware running as your user. Calls may be autosaved in
-`Documents/Ansora AI/Calls`, including sensitive transcript/answer/request
+`Documents/Ansora AI Community/Calls`, including sensitive transcript/answer/request
 context. Review and delete those files when appropriate. Never post real calls,
 resumes, credentials or customer records in issues.
 
