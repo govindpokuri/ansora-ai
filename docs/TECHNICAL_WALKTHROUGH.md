@@ -100,3 +100,8 @@ Try the [Windows preview](WINDOWS_QUICKSTART.md), inspect the [architecture](ARC
 or choose an issue in [the repository](https://github.com/govindpokuri/ansora-ai/issues).
 Use the tool for practice, accessibility and conversations where assistance is
 permitted, and review generated answers before relying on them.
+
+For users who prefer an operator-managed connection and account billing, the
+[hosted Ansora AI service](https://www.ansora-ai.com/) provides its own website
+sign-in, token-purchase and installer flow. That paid service is separate from
+the MIT Community source and optional donations.

@@ -7,6 +7,7 @@
 [![Windows Community preview](https://img.shields.io/badge/Windows-Community_preview-137f76)](https://github.com/govindpokuri/ansora-ai/releases/tag/v0.1.14-community.1)
 
 **[Download the Windows portable preview](https://github.com/govindpokuri/ansora-ai/releases/download/v0.1.14-community.1/AnsoraAI-Community-0.1.14-community.1-win-x64.zip)** ·
+[Use the hosted version](https://www.ansora-ai.com/) ·
 [Setup guide](docs/WINDOWS_QUICKSTART.md) · [How it works](docs/TECHNICAL_WALKTHROUGH.md) ·
 [Contribute](CONTRIBUTING.md) · [Donate](https://razorpay.me/@ansoraai)
 
@@ -14,6 +15,8 @@ Bring your own chat-completions endpoint and API credentials, or self-host the
 optional PHP backend. No hosted Ansora purchase is required for direct mode.
 AI provider charges still apply. This repository contains no API keys, customer
 data, speech-model weights, or prebuilt commercial installers.
+
+> **Prefer managed setup?** [Use hosted Ansora AI](https://www.ansora-ai.com/) with email sign-in and purchased token credits. [Compare the options](#community-or-hosted).
 
 ## See the app
 
@@ -49,6 +52,26 @@ See the [first-run guide and troubleshooting](docs/WINDOWS_QUICKSTART.md).
 Use it for practice, accessibility and conversations where assistance is permitted.
 Obtain appropriate consent before transcribing others. AI and speech recognition
 can make mistakes. Screen-capture exclusion is best-effort, not undetectability.
+
+## Community or hosted?
+
+**[Visit Ansora AI — www.ansora-ai.com](https://www.ansora-ai.com/)**
+
+Sign in with your email, purchase a token pack, download the Windows installer,
+and sign in to the app with the same email. The hosted service manages the AI
+connection and account balance, so you do not need to configure your own AI key.
+See the website for current pricing, availability and terms.
+
+| | Community edition | Hosted / managed version |
+|---|---|---|
+| Get started | Portable preview or build from source | Website account and Windows installer |
+| AI connection | Your endpoint and API key | Managed by Ansora's backend |
+| Usage cost | Free source; your provider's charges apply | Purchase token credits through the website |
+| Best fit | Developers, customization and self-hosting | Users who prefer managed setup and billing |
+
+The Community source remains MIT licensed. Hosted credits and donations are
+separate: donating does not purchase service credits. Both versions need a
+compatible Windows PC, and AI requests require Internet access.
 
 ## Quick start: bring your own AI endpoint
 

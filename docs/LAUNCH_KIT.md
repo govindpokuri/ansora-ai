@@ -21,6 +21,9 @@ Use it for practice and conversations where assistance is permitted.
 
 https://github.com/govindpokuri/ansora-ai
 
+Prefer managed setup instead of your own AI key? https://www.ansora-ai.com/
+The hosted service uses purchased token credits; the Community source is MIT.
+
 #OpenSource #DotNet #Whisper #AI #Windows
 
 ## Shorter group introduction
@@ -30,6 +33,8 @@ Local Whisper transcription, AI answer suggestions and coding help with your own
 endpoint/key. MIT licensed, with a portable preview and setup docs.
 Would appreciate practical feedback on audio setup and accessibility:
 https://github.com/govindpokuri/ansora-ai
+
+Managed version: https://www.ansora-ai.com/ (paid token credits).
 
 ## Technical article
 
