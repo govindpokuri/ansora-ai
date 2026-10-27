@@ -100,10 +100,10 @@ resumes, credentials or customer records in issues.
 
 ## Support / donate
 
-Stars, useful bug reports, documentation and code contributions are welcome.
-Financial donations are optional and do not unlock features. A verified payment
-link will be added when supplied by the maintainer; no donation destination is
-configured yet. See [SUPPORT.md](SUPPORT.md).
+Enjoy using Ansora AI? [Donate through Razorpay](https://razorpay.me/@ansoraai)
+or use the **Sponsor** button on GitHub. Donations are optional and do not unlock
+features, buy hosted tokens, or guarantee support. Stars, useful bug reports,
+documentation and code contributions are welcome too. See [SUPPORT.md](SUPPORT.md).
 
 ## Contributing, security and license
 
