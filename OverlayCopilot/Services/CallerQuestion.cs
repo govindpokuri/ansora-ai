@@ -6,7 +6,7 @@ namespace OverlayCopilot.Services;
 
 public static class CallerQuestion
 {
-    private static readonly Regex question = new(@"\b(what|why|how|when|where|who|which|explain|describe|define|compare|implement|write|solve|introduce)\b|\b(can|could|would|will|have|do|did) you\b|\btell me\b|\bwalk me\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex question = new(@"\b(what|why|how|when|where|who|which|explain|describe|define|compare|implement|write|solve|introduce|differentiate|elaborate)\b|\b(can|could|would|will|have|do|did|are) you\b|\btell me\b|\bwalk me\b|\bdifference between\b|\b(?:your experience|experience with)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     public static bool IsReady(string text)
     {
         var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);

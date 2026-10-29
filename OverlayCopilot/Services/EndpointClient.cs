@@ -44,8 +44,10 @@ public sealed class EndpointClient : IDisposable
     private static TokenUsage Sum(TokenUsage? a,TokenUsage b) => a is null ? b : new(a.Input+b.Input,a.Output+b.Output,a.Total+b.Total,
         a.Reasoning is not null && b.Reasoning is not null ? a.Reasoning+b.Reasoning : null);
     private readonly HttpClient client;
-    public EndpointClient(HttpMessageHandler? handler = null)
+    private readonly TimeSpan answerTimeout;
+    public EndpointClient(HttpMessageHandler? handler = null, TimeSpan? answerTimeout = null)
     {
+        this.answerTimeout = answerTimeout ?? TimeSpan.FromSeconds(75);
         client = handler is null ? new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) : new HttpClient(handler);
         client.Timeout = TimeSpan.FromSeconds(90);
     }
@@ -78,6 +80,22 @@ public sealed class EndpointClient : IDisposable
     }
     public async Task AnswerAsync(string question, AppSettings settings, string key, Action<string> append, CancellationToken ct, Action<TokenUsage>? reportUsage = null, string? systemInstructions = null, Action<string, string>? reportMetadata = null,
         IReadOnlyList<ChatTurn>? conversation = null, string continuationModel = "", Action<bool>? reportIncompleteUsage = null)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(answerTimeout);
+        try
+        {
+            await ReadAnswerAsync(question, settings, key, append, deadline.Token, reportUsage, systemInstructions,
+                reportMetadata, conversation, continuationModel, reportIncompleteUsage);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested && deadline.IsCancellationRequested)
+        {
+            throw new TimeoutException("The AI response timed out. The next caller question can still be answered. Check your account usage before retrying this question.");
+        }
+    }
+    private async Task ReadAnswerAsync(string question, AppSettings settings, string key, Action<string> append, CancellationToken ct,
+        Action<TokenUsage>? reportUsage, string? systemInstructions, Action<string, string>? reportMetadata,
+        IReadOnlyList<ChatTurn>? conversation, string continuationModel, Action<bool>? reportIncompleteUsage)
     {
         settings.ValidateAnswer();
         if (string.IsNullOrWhiteSpace(key) && !AppSettings.ValidateEndpoint(settings.AnswerUrl).IsLoopback)

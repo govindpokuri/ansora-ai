@@ -12,6 +12,21 @@ using OverlayCopilot.Services;
 
 internal static class Program
 {
+    // Pumping a dispatcher also runs Application's queued startup callback.
+    // Keep UI fixtures from opening the real app or its single-instance dialog.
+    private sealed class TestApp : Application
+    {
+        public void InitializeComponent()
+        {
+            using var stream = typeof(Program).Assembly.GetManifestResourceStream("TestAppTheme.xaml")!;
+            var document = System.Xml.Linq.XDocument.Load(stream);
+            System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+            var dictionary = new System.Xml.Linq.XElement(ns + "ResourceDictionary",
+                new System.Xml.Linq.XAttribute(System.Xml.Linq.XNamespace.Xmlns + "x", "http://schemas.microsoft.com/winfx/2006/xaml"),
+                document.Root!.Element(ns + "Application.Resources")!.Elements());
+            Resources = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(dictionary.ToString());
+        }
+    }
     private static int passed;
     [STAThread]
     public static int Main(string[] args)
@@ -49,6 +64,7 @@ internal static class Program
             if (args.Contains("--startup-check")) { VerifyStartupConnection(); return 0; }
             if (args.Contains("--update-badge-check")) { VerifyUpdateBadge(); return 0; }
             if (args.Contains("--update-badge-ui-check")) { RenderWindow(false,true); return 0; }
+            if (args.Contains("--desktop-reliability-check")) { VerifyDesktopReliability(); return 0; }
             if (args.Contains("--stream-recovery-check")) { VerifyStreamRecovery(); return 0; }
             if (args.Contains("--options-ui-check")) { RenderWindow(true); return 0; }
             if (args.Contains("--ui-check")) { RenderWindow(); return 0; }
@@ -115,7 +131,7 @@ internal static class Program
         queue.Offer("", "What is", "turn1", false, clock);
         Check(queue.TryTake(clock.AddSeconds(5)) is null, "incomplete caller prefixes do not generate paid requests");
         queue.Offer("", "What is dependency injection?", "turn1", false, clock);
-        Check(queue.TryTake(clock.AddSeconds(2)) is null, "partial questions wait for a short stability interval");
+        Check(queue.TryTake(clock.AddSeconds(1)) is null, "partial questions wait for a short stability interval");
         queue.Offer("", "What is dependency injection in C#?", "turn1", false, clock.AddSeconds(2));
         Check(queue.TryTake(clock.AddSeconds(3)) is null, "changing partial questions replace the pending draft");
         queue.Offer("Caller: Previous unrelated question", "What is dependency injection in C#?", "turn1", true, clock.AddSeconds(3));
@@ -151,6 +167,13 @@ internal static class Program
         var fresh = queue.TryTake(clock.AddSeconds(33)); queue.Complete(latest.Version);
         queue.Offer("", "Explain async await", "new-followup", true, clock.AddSeconds(34));
         Check(fresh is not null && queue.TryTake(clock.AddSeconds(35)) is null, "stale completions cannot release a new session's active request");
+        queue.Reset();
+        queue.Offer("", "Are you familiar with dependency injection", "continuous", false, clock);
+        var continuous = queue.TryTake(clock.AddSeconds(1.5));
+        Check(continuous is not null, "complete live questions dispatch between two-second previews without waiting for silence");
+        queue.Offer("", "Are you familiar with dependency injection in C sharp", "continuous", false, clock.AddSeconds(2));
+        queue.Complete(continuous!.Version);
+        Check(queue.TryTake(clock.AddSeconds(3.5)) is null, "later live wording does not repeat a paid answer");
         var context = string.Join("\n", Enumerable.Range(0, 20).Select(i => "Caller: Previous question number " + i + new string('x', 600)));
         var prompt = QuestionPrompt.Build("What is a deadlock?", context);
         using var payload = JsonDocument.Parse(prompt[(prompt.IndexOf('\n') + 1)..]);
@@ -490,7 +513,7 @@ internal static class Program
     }
     private static void VerifyManualQuestion()
     {
-        var app = new App(); app.InitializeComponent();
+        var app = new TestApp(); app.InitializeComponent();
         var window = new MainWindow();
         SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(window.Dispatcher));
         var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
@@ -528,12 +551,12 @@ internal static class Program
         Check(report.Answers.Length == 1 && report.Answers[0].Question == question && report.ReportedUsage.Total == 80, "manual question and provider token usage are retained in the call export");
         Check(((System.Windows.Controls.TextBlock)window.FindName("AnswerQuestionText")).Text.Contains("Count distinct") && ((System.Windows.Controls.TextBox)window.FindName("AnswerBox")).Text.Contains("def solve"), "coding answer displays against the pasted question");
         var history = (System.Windows.Controls.ComboBox)window.FindName("AnswerHistory");
-        var hold = (System.Windows.Controls.CheckBox)window.FindName("PinAnswer");
+        Check(window.FindName("PinAnswer") is null, "answer hold control is removed");
         Check(history.IsEnabled && history.Items.Count == 2, "completed answers are added to selectable recent history");
         history.SelectedIndex = 1;
-        Check(hold.IsChecked == true && ((System.Windows.Controls.TextBox)window.FindName("AnswerBox")).Text.Contains("def solve"), "reviewing a previous answer holds automatic generation while reading");
+        Check(((System.Windows.Controls.TextBox)window.FindName("AnswerBox")).Text.Contains("def solve"), "previous answers remain readable in recent history");
         history.SelectedIndex = 0;
-        Check(hold.IsChecked == false, "returning to live answer releases the reading hold");
+        Check(history.SelectedIndex == 0, "returning to live answer selects the newest response");
         input.Clear(); ((Task)send.Invoke(window, null)!).GetAwaiter().GetResult();
         input.Text = new string('a', 24001); ((Task)send.Invoke(window, null)!).GetAwaiter().GetResult();
         Check(requests == 1, "empty and oversized pasted questions do not consume AI requests");
@@ -551,7 +574,7 @@ internal static class Program
     {
         // Render real WPF controls with synthetic text. Do not show a native
         // window, start capture, load a real call, or send a provider request.
-        var app = new App(); app.InitializeComponent();
+        var app = new TestApp(); app.InitializeComponent();
         var window = new MainWindow { Title = "Ansora AI Community", Width = 1060, Height = 760 };
         typeof(MainWindow).GetMethod("LoadSettings", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
             .Invoke(window, new object[] { new AppSettings() });
@@ -589,7 +612,7 @@ internal static class Program
 
     private static void RenderWindow(bool showOptions = false, bool showBadge = false)
     {
-        var app = new App(); app.InitializeComponent();
+        var app = new TestApp(); app.InitializeComponent();
         var window = new MainWindow();
         var handle = new WindowInteropHelper(window).EnsureHandle();
         window.Left = 100; window.Top = 100;
@@ -802,7 +825,7 @@ For example, a desktop app might use a worker thread for a long calculation so t
     }
     private static void RenderResumeWindow()
     {
-        var app = new App(); app.InitializeComponent();
+        var app = new TestApp(); app.InitializeComponent();
         var sample = SampleCandidate(); var window = new ResumeWindow(new AppSettings(), "", sample, new CandidateProfileStore()) { Width = 800, Height = 740 };
         window.Show(); window.UpdateLayout(); var root = (FrameworkElement)window.Content;
         Check(((System.Windows.Controls.TextBox)window.FindName("LanguagesBox")).Text == "Python, SQL", "resume panel exposes reviewed coding languages");
@@ -937,7 +960,7 @@ For example, a desktop app might use a worker thread for a long calculation so t
     }
     private static void VerifyAccountUi()
     {
-        var app = new App(); app.InitializeComponent();
+        var app = new TestApp(); app.InitializeComponent();
         var window = new MainWindow();
         var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
         var load = typeof(MainWindow).GetMethod("LoadSettings", flags)!;
@@ -1025,7 +1048,7 @@ For example, a desktop app might use a worker thread for a long calculation so t
     }
     private static void VerifyUpdateBadge()
     {
-        var app=new App(); app.InitializeComponent(); var window=new MainWindow();
+        var app=new TestApp(); app.InitializeComponent(); var window=new MainWindow();
         var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
         var badge=(System.Windows.Controls.Button)window.FindName("UpdateBadge");
         var panel=(FrameworkElement)window.FindName("OptionsPanel");
@@ -1052,9 +1075,12 @@ For example, a desktop app might use a worker thread for a long calculation so t
     }
     private static void VerifyStreamRecovery()
     {
-        var app=new App(); app.InitializeComponent(); var window=new MainWindow();
+        var app=new TestApp(); app.InitializeComponent(); var window=new MainWindow();
         SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(window.Dispatcher));
         var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;
+        typeof(MainWindow).GetMethod("LoadSettings",flags)!.Invoke(window,new object[] { new AppSettings { AnswerUrl="http://127.0.0.1:8182/chat/completions", AnswerModel="synthetic-mini" } });
+        typeof(MainWindow).GetField("candidate",flags)!.SetValue(window,null);
+        ((System.Windows.Threading.DispatcherTimer)typeof(MainWindow).GetField("saveTimer",flags)!.GetValue(window)!).Stop();
         var endpointField=typeof(MainWindow).GetField("endpoints",flags)!;
         ((EndpointClient)endpointField.GetValue(window)!).Dispose();
         var calls=0;
@@ -1072,10 +1098,18 @@ For example, a desktop app might use a worker thread for a long calculation so t
         })));
         ((System.Windows.Controls.TextBox)window.FindName("AnswerUrl")).Text="http://127.0.0.1:8182/chat/completions";
         ((System.Windows.Controls.TextBox)window.FindName("AnswerModel")).Text="synthetic-mini";
-        var generate=typeof(MainWindow).GetMethod("GenerateAnswerAsync",flags)!;
+        var queue=(LiveAnswerQueue)typeof(MainWindow).GetField("liveAnswers",flags)!.GetValue(window)!;
+        var run=typeof(MainWindow).GetMethod("RunLiveAnswerAsync",flags)!;
+        var observed=DateTimeOffset.UtcNow;
         void Ask(string question)
         {
-            var task=(Task)generate.Invoke(window,new object[] { question,true,question,"synthetic-"+question })!;
+            Check(window.FindName("PinAnswer") is null,
+                "completed answer history cannot enable a removed answer hold");
+            observed=observed.AddSeconds(3);
+            queue.Offer("",question,"synthetic-"+question,true,observed);
+            var job=queue.TryTake(observed.AddMilliseconds(500));
+            Check(job is not null,"a later caller question leaves the real answer queue");
+            var task=(Task)run.Invoke(window,new object[] { job! })!;
             var frame=new System.Windows.Threading.DispatcherFrame();
             var timer=new System.Windows.Threading.DispatcherTimer { Interval=TimeSpan.FromSeconds(10) };
             timer.Tick+=(_,_)=>frame.Continue=false; timer.Start();
@@ -1089,8 +1123,11 @@ For example, a desktop app might use a worker thread for a long calculation so t
         var first=archive.Snapshot().Answers[0];
         Check(first.Status=="Completed" && first.FinishReason=="stop" && first.Usage?.Total==30 && !first.UsageIncomplete,"array-shaped finish delta preserves completed answer and trailing token usage");
         Check(!Paused(),"empty stream metadata does not pause automatic answers");
+        ((System.Windows.Controls.ComboBox)window.FindName("AnswerHistory")).SelectedIndex=1;
         Ask("How do services call REST APIs?");
         Check(calls==2 && archive.RequestCount==2 && ((System.Windows.Controls.TextBox)window.FindName("AnswerBox")).Text=="Answer 2","a later caller question replaces the first answer");
+        Check(((System.Windows.Controls.ComboBox)window.FindName("AnswerHistory")).SelectedIndex==0,
+            "new responses automatically leave history and return to the live answer");
         Ask("What is circuit breaking?");
         Check(!Paused(),"temporary HTTP failure does not permanently pause future questions");
         Ask("What is dependency injection?");
@@ -1113,7 +1150,7 @@ For example, a desktop app might use a worker thread for a long calculation so t
         Check(((FrameworkElement)window.FindName("OptionsPanel")).Visibility==Visibility.Collapsed,"secondary controls are initially tucked away");
         typeof(MainWindow).GetMethod("OptionsClick",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.Invoke(window,new object[] { window,new RoutedEventArgs() });
         Check(((FrameworkElement)window.FindName("OptionsPanel")).Visibility==Visibility.Visible,"one Options control reveals secondary settings");
-        Check(((System.Windows.Controls.TextBlock)((System.Windows.Controls.CheckBox)window.FindName("PinAnswer")).Content).Text=="Keep this on screen","reading hold uses clear language");
+        Check(window.FindName("PinAnswer") is null,"onboarding has no answer-hold checkbox");
         window.Close(); app.Shutdown();
     }
     private static async Task VerifyProductFlowAsync()
@@ -1154,6 +1191,111 @@ For example, a desktop app might use a worker thread for a long calculation so t
         Check(CallMinutes.Estimate(report with { Answers=new[] { entries[0] with { UsageIncomplete=true } } },30000,now).StartsWith("Estimating"),"small samples remain provisional");
         Check(CallMinutes.Estimate(report with { Answers=entries.Select(a=>a with { UsageIncomplete=true }).ToArray() },30000,now)=="Minutes estimate unavailable","unknown billed usage cannot produce misleading minutes");
         Check(CallMinutes.Estimate(report,0,now)=="No minutes available","zero balance is explicit");
+    }
+    private static void VerifyDesktopReliability()
+    {
+        var app = new TestApp(); app.InitializeComponent(); var window = new MainWindow();
+        SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(window.Dispatcher));
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        void Run(Task task)
+        {
+            var frame = new System.Windows.Threading.DispatcherFrame();
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+            timer.Tick += (_, _) => frame.Continue = false; timer.Start();
+            task.ContinueWith(_ => window.Dispatcher.BeginInvoke(() => frame.Continue = false));
+            System.Windows.Threading.Dispatcher.PushFrame(frame); timer.Stop();
+            Check(task.IsCompletedSuccessfully, "desktop operation completes without blocking the UI");
+        }
+        var directory = Path.Combine(Path.GetTempPath(), "ansora-desktop-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        ((System.Windows.Threading.DispatcherTimer)typeof(MainWindow).GetField("saveTimer", flags)!.GetValue(window)!).Stop();
+        typeof(MainWindow).GetField("autoSave", flags)!.SetValue(window, new CallAutoSave(directory));
+        var archive = (CallArchive)typeof(MainWindow).GetField("callArchive", flags)!.GetValue(window)!;
+        try
+        {
+            typeof(MainWindow).GetMethod("RecordCallerText", flags)!.Invoke(window, new object[] { 1, 1L, "Explain dependency injection", true });
+            Check(((System.Windows.Controls.Button)window.FindName("ExportButton")).IsEnabled && archive.RequestCount == 0,
+                "caller-only capture enables export immediately even when no AI answer arrived");
+            var export = typeof(MainWindow).GetMethod("ExportCallAsync", flags)!;
+            var html = Path.Combine(directory, "call.html");
+            Run((Task)export.Invoke(window, new object[] { html })!);
+            Check(File.ReadAllText(html).Contains("Explain dependency injection") && File.ReadAllText(html).EndsWith("</html>"),
+                "desktop export creates a complete transcript-only HTML call report");
+            var json = Path.Combine(directory, "call.json");
+            Run((Task)export.Invoke(window, new object[] { json })!);
+            Check(JsonDocument.Parse(File.ReadAllText(json)).RootElement.GetProperty("Transcript").GetArrayLength() == 1,
+                "desktop JSON export retains caller transcript without AI responses");
+            Run((Task)export.Invoke(window, new object[] { Path.Combine(directory, "missing", "call.html") })!);
+            Check(((System.Windows.Controls.Button)window.FindName("ExportButton")).IsEnabled,
+                "failed export leaves the report recoverable");
+            Check(((System.Windows.Controls.TextBlock)window.FindName("AnswerStatus")).Text.StartsWith("Could not export"),
+                "failed export displays an error outside Options; actual status: " + ((System.Windows.Controls.TextBlock)window.FindName("AnswerStatus")).Text);
+
+            var endpointField = typeof(MainWindow).GetField("endpoints", flags)!;
+            ((EndpointClient)endpointField.GetValue(window)!).Dispose();
+            var calls = 0;
+            endpointField.SetValue(window, new EndpointClient(new FakeHandler(_ =>
+            {
+                calls++;
+                if (calls == 1)
+                {
+                    var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new StalledAnswerStream()) };
+                    response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
+                    return Task.FromResult(response);
+                }
+                return Task.FromResult(Json("{\"choices\":[{\"message\":{\"content\":\"A fresh answer\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5,\"total_tokens\":15}}"));
+            }), TimeSpan.FromMilliseconds(300)));
+            ((System.Windows.Controls.TextBox)window.FindName("AnswerUrl")).Text = "http://127.0.0.1:8182/chat/completions";
+            ((System.Windows.Controls.TextBox)window.FindName("AnswerModel")).Text = "synthetic-mini";
+            var generate = typeof(MainWindow).GetMethod("GenerateAnswerAsync", flags)!;
+            var previous = new CallArchive().StartAnswer("Old question", "Old question", new AppSettings());
+            previous.Append("Previous answer"); previous.Finish("Completed");
+            var history = (System.Windows.Controls.ComboBox)window.FindName("AnswerHistory");
+            history.Items.Add(new System.Windows.Controls.ComboBoxItem { Content="Old question", Tag=previous.Snapshot() });
+            history.SelectedIndex=1;
+            ((System.Windows.Threading.DispatcherTimer)typeof(MainWindow).GetField("presentationTimer",flags)!.GetValue(window)!).Stop();
+            bool visibleWhileStreaming=false;
+            Task? pendingAnswer=null;
+            var observer = new System.Windows.Threading.DispatcherTimer { Interval=TimeSpan.FromMilliseconds(20) };
+            observer.Tick+=(_,_)=> {
+                if(pendingAnswer is { IsCompleted:false } && history.SelectedIndex==0 &&
+                    ((System.Windows.Controls.TextBox)window.FindName("AnswerBox")).Text=="Partial answer") visibleWhileStreaming=true;
+            };
+            observer.Start();
+            pendingAnswer=(Task)generate.Invoke(window, new object[] { "Explain threads", true, "Explain threads", "stalled" })!;
+            Run(pendingAnswer); observer.Stop();
+            Check(visibleWhileStreaming,"first server text replaces reviewed history before completion, even with periodic rendering stopped");
+            Check(archive.Snapshot().Answers[0].Answer == "Partial answer" && archive.Snapshot().Answers[0].Status.Contains("timed out"),
+                "a stalled response body times out and retains already received answer text");
+            Check(typeof(MainWindow).GetField("answerCts", flags)!.GetValue(window) is null &&
+                !(bool)typeof(MainWindow).GetField("automaticSuppressed", flags)!.GetValue(window)!,
+                "a stalled stream releases the active request and does not permanently pause automatic answers");
+            Run((Task)generate.Invoke(window, new object[] { "Explain interfaces", true, "Explain interfaces", "next" })!);
+            Check(calls == 2 && ((System.Windows.Controls.TextBox)window.FindName("AnswerBox")).Text == "A fresh answer",
+                "the next caller question displays normally after a streaming timeout");
+        }
+        finally { window.Close(); Directory.Delete(directory, true); }
+        Console.WriteLine($"PASS: {passed} desktop reliability checks");
+    }
+    private sealed class StalledAnswerStream : Stream
+    {
+        private readonly byte[] prefix = Encoding.UTF8.GetBytes("data: {\"choices\":[{\"delta\":{\"content\":\"Partial answer\"}}]}\n\n");
+        private bool sent;
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct = default)
+        {
+            if (!sent) { sent = true; prefix.CopyTo(buffer); return prefix.Length; }
+            await Task.Delay(Timeout.Infinite, ct); return 0;
+        }
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
     private sealed class FakeHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> respond) : HttpMessageHandler
     {

@@ -81,6 +81,8 @@ public partial class MainWindow : Window
 
 	private bool savingCall;
 
+	private bool exportingCall;
+
 	private TaskCompletionSource? answerIdle;
 
 	private readonly DispatcherTimer answerTimer = new DispatcherTimer
@@ -412,7 +414,7 @@ public partial class MainWindow : Window
 
 	private void DispatchLiveAnswer()
 	{
-		if (!closing && PinAnswer.IsChecked != true && QuestionTabs.SelectedIndex != 1 && listener != null && AutoAnswer.IsChecked == true && !automaticSuppressed && answerCts == null)
+		if (!closing && QuestionTabs.SelectedIndex != 1 && listener != null && AutoAnswer.IsChecked == true && !automaticSuppressed && answerCts == null)
 		{
 			var answerJob = liveAnswers.TryTake(DateTimeOffset.UtcNow);
 			if (answerJob is not null)
@@ -565,7 +567,13 @@ public partial class MainWindow : Window
 		MinutesLeft.Text = (commercialMode ? CallMinutes.Estimate(callArchive.Snapshot(), accountBalance?.Available, DateTimeOffset.Now) : "Local AI connection");
 		TokenSummary.Text = $"AI tokens · {reportedUsage.Total:N0} · {callArchive.RequestCount} requests" + ((callArchive.MissingUsageRequests > 0) ? " + unknown" : "") + ((callArchive.PendingRequests > 0) ? " · updating" : "");
 		TokenSummary.ToolTip = $"Provider-reported input: {reportedUsage.Input:N0}; output: {reportedUsage.Output:N0}. Usage unavailable for {callArchive.MissingUsageRequests} request(s). Connection checks are excluded. Counts update when the provider reports them.";
-		ExportButton.IsEnabled = callArchive.HasContent;
+		ExportButton.IsEnabled = callArchive.HasContent && !exportingCall;
+	}
+
+	private void RecordCallerText(int epoch, long segment, string text, bool final)
+	{
+		callArchive.UpdateCaller(epoch, segment, text, final);
+		ExportButton.IsEnabled = callArchive.HasContent && !exportingCall;
 	}
 
 	private async void ExportCallClick(object sender, RoutedEventArgs e)
@@ -575,7 +583,6 @@ public partial class MainWindow : Window
 			Status.Text = "No call details to export yet.";
 			return;
 		}
-		CallReport report = callArchive.Snapshot();
 		SaveFileDialog dialog = new SaveFileDialog
 		{
 			Title = "Export call reference",
@@ -584,18 +591,44 @@ public partial class MainWindow : Window
 			DefaultExt = ".html",
 			AddExtension = true
 		};
-		if (dialog.ShowDialog(this) != true)
+		// Let the native file picker appear above the always-on-top overlay.
+		bool wasTopmost = Topmost;
+		bool? accepted;
+		try
+		{
+			Topmost = false;
+			accepted = dialog.ShowDialog(this);
+		}
+		catch
+		{
+			AnswerStatus.Text = "Could not open the export dialog. Your call remains in Saved calls.";
+			return;
+		}
+		finally { Topmost = wasTopmost; }
+		if (accepted != true)
 		{
 			return;
 		}
+		await ExportCallAsync(dialog.FileName);
+	}
+
+	private async Task ExportCallAsync(string path)
+	{
+		if (exportingCall || !callArchive.HasContent) return;
+		CallReport report = callArchive.Snapshot();
+		exportingCall = true;
 		ExportButton.IsEnabled = false;
 		try
 		{
-			var content = (Path.GetExtension(dialog.FileName).Equals(".json", StringComparison.OrdinalIgnoreCase) ? CallExporter.Json(report) : CallExporter.Html(report));
-			await CallExporter.WriteAtomicAsync(dialog.FileName, content);
+			await Task.Run(async () =>
+			{
+				var content = Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase) ? CallExporter.Json(report) : CallExporter.Html(report);
+				await CallExporter.WriteAtomicAsync(path, content);
+			});
 			if (!closing)
 			{
-				Status.Text = "Call exported · " + Path.GetFileName(dialog.FileName);
+				Status.Text = "Call exported · " + path;
+				AnswerStatus.Text = "Call exported · " + Path.GetFileName(path);
 			}
 		}
 		catch
@@ -603,10 +636,12 @@ public partial class MainWindow : Window
 			if (!closing)
 			{
 				Status.Text = "Could not export the call. Choose a writable location and try again.";
+				AnswerStatus.Text = Status.Text;
 			}
 		}
 		finally
 		{
+			exportingCall = false;
 			if (!closing)
 			{
 				UpdateTokenSummary();
@@ -846,14 +881,12 @@ public partial class MainWindow : Window
 		{
 			if (AnswerHistory.SelectedIndex > 0 && AnswerHistory.SelectedItem is ComboBoxItem { Tag: RecordedAnswer tag })
 			{
-				PinAnswer.IsChecked = true;
 				AnswerBox.Text = tag.Answer;
 				AnswerQuestionText.Text = tag.Question;
 				RefreshAnswerPresentation();
 			}
 			else if (AnswerHistory.SelectedIndex == 0 && AnswerHistory.Items.Count > 1 && AnswerHistory.Items[1] is ComboBoxItem { Tag: RecordedAnswer tag2 })
 			{
-				PinAnswer.IsChecked = false;
 				AnswerBox.Text = tag2.Answer;
 				AnswerQuestionText.Text = tag2.Question;
 				RefreshAnswerPresentation();
@@ -906,6 +939,7 @@ public partial class MainWindow : Window
 		{
 			if (answerStreamBuffer.FirstBatch)
 			{
+				AnswerHistory.SelectedIndex = 0;
 				AnswerQuestionText.Text = "Answering: " + answerStreamBuffer.Question;
 				AnswerBox.Clear();
 				FlowDocument flowDocument = AnswerPresentation.Format("", answerTextSize);
@@ -1009,7 +1043,6 @@ public partial class MainWindow : Window
 			DraftText.Text = "Live drafts appear here while you speak.";
 			callArchive = new CallArchive();
 			UpdateTokenSummary();
-			PinAnswer.IsChecked = false;
 			while (AnswerHistory.Items.Count > 1)
 			{
 				AnswerHistory.Items.RemoveAt(1);
@@ -1489,7 +1522,7 @@ public partial class MainWindow : Window
 						transcript.Update(epoch, source, chunk.SegmentId, text3, !chunk.Preview);
 						if (source == "Caller")
 						{
-							callArchive.UpdateCaller(epoch, chunk.SegmentId, text3, !chunk.Preview);
+							RecordCallerText(epoch, chunk.SegmentId, text3, !chunk.Preview);
 						}
 						bool num = TranscriptBox.VerticalOffset >= TranscriptBox.ExtentHeight - TranscriptBox.ViewportHeight - 20.0;
 						double verticalOffset = TranscriptBox.VerticalOffset;
@@ -1600,11 +1633,6 @@ public partial class MainWindow : Window
 			return;
 		}
 		answerCts?.Cancel();
-		if (!automatic)
-		{
-			PinAnswer.IsChecked = false;
-			AnswerHistory.SelectedIndex = 0;
-		}
 		AnswerHistory.IsEnabled = false;
 		int current = ++generation;
 		var cts = new CancellationTokenSource();
@@ -1620,6 +1648,7 @@ public partial class MainWindow : Window
 			AnswerButton.Content = "Cancel answer";
 			ManualAnswerButton.Content = "Cancel answer";
 			AnswerStatus.Text = "Writing";
+			int firstTextQueued = 0;
 			try
 			{
 				await Task.Run(async delegate
@@ -1628,6 +1657,15 @@ public partial class MainWindow : Window
 					{
 						recordedAnswer.Append(token);
 						stream.Append(token);
+						if (token.Length > 0 && Interlocked.Exchange(ref firstTextQueued, 1) == 0)
+						{
+							// Show the first server text promptly; later tokens stay batched
+							// on the presentation timer to keep scrolling responsive.
+							base.Dispatcher.BeginInvoke((Action)(() =>
+							{
+								if (activeStream == stream) DrainAnswerStream();
+							}), DispatcherPriority.Normal);
+						}
 					}, cts.Token, delegate(TokenUsage usage)
 					{
 						recordedAnswer.Usage = usage;
@@ -1739,7 +1777,7 @@ public partial class MainWindow : Window
 
 	private static string FriendlyError(Exception ex, string prefix)
 	{
-		if (!(ex is ArgumentException) && !(ex is InvalidDataException) && !(ex is InvalidOperationException))
+		if (!(ex is ArgumentException) && !(ex is InvalidDataException) && !(ex is InvalidOperationException) && !(ex is TimeoutException))
 		{
 			if (ex is HttpRequestException { StatusCode: var statusCode })
 			{

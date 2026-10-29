@@ -43,7 +43,9 @@ public sealed class LiveAnswerQueue
     public AnswerJob? TryTake(DateTimeOffset now)
     {
         if (running || pending is null || now - lastStart < TimeSpan.FromSeconds(1)) return null;
-        if (now - pending.Changed < TimeSpan.FromMilliseconds(pending.Final ? 400 : 2200)) return null;
+        // Audio previews arrive every two seconds. A longer stability delay can
+        // keep moving forever while a caller continues speaking.
+        if (now - pending.Changed < TimeSpan.FromMilliseconds(pending.Final ? 400 : 1200)) return null;
         var item = pending; pending = null;
         if (submitted.ContainsKey(item.Id)) corrected.Add(item.Id);
         lastQuestion = Normalize(item.Question); lastStart = now; submitted[item.Id] = lastQuestion; running = true;

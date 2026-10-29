@@ -61,10 +61,9 @@
        <DockPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Click="SmallerTextClick" Background="#DFE7F2" ToolTip="Smaller answer text" AutomationProperties.Name="Smaller answer text"><TextBlock Text="A−" Foreground="#253854" FontWeight="SemiBold"/></Button><Button Click="LargerTextClick" Background="#DFE7F2" Margin="0" ToolTip="Larger answer text" AutomationProperties.Name="Larger answer text"><TextBlock Text="A+" Foreground="#253854" FontWeight="SemiBold"/></Button></StackPanel><TextBlock Text="SUGGESTED ANSWER" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource OverlayAnswerHeading}" VerticalAlignment="Center"/></DockPanel>
        <TextBlock Grid.Row="1" x:Name="AnswerQuestionText" Text="Waiting for a caller question" Foreground="{DynamicResource OverlayAnswerSecondaryText}" FontSize="13" Margin="0,14,0,16" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
        <RichTextBox Grid.Row="2" x:Name="AnswerDisplay" Effect="{DynamicResource OverlayTextShadow}" IsReadOnly="True" IsDocumentEnabled="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource OverlayAnswerText}" VerticalScrollBarVisibility="Auto" Padding="0"/>
-       <Grid Grid.Row="3" Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <CheckBox x:Name="PinAnswer" Margin="0" VerticalAlignment="Center" ToolTip="Keep this answer visible and pause new automatic AI requests. Transcription continues."><TextBlock Text="Keep this on screen" Foreground="{DynamicResource OverlayAnswerSecondaryText}"/></CheckBox>
-        <ComboBox x:Name="AnswerHistory" Grid.Column="1" SelectedIndex="0" MinHeight="32" SelectionChanged="AnswerHistoryChanged" Margin="14,0,0,0" ToolTip="Review recent answers; selecting history holds automatic answers"><ComboBoxItem Content="Live answer · follow newest"/></ComboBox>
-        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0" Text="Speak in your own words · adapt examples to your actual experience" Foreground="{DynamicResource OverlayAnswerSecondaryText}" FontSize="11"/>
+       <Grid Grid.Row="3" Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ComboBox x:Name="AnswerHistory" SelectedIndex="0" MinHeight="32" SelectionChanged="AnswerHistoryChanged" ToolTip="Review recent answers. Each new server response automatically replaces the displayed answer."><ComboBoxItem Content="Live answer · follow newest"/></ComboBox>
+        <TextBlock Grid.Row="1" Margin="0,8,0,0" Text="New answers appear automatically · speak in your own words" Foreground="{DynamicResource OverlayAnswerSecondaryText}" FontSize="11"/>
        </Grid>
       </Grid>
      </Border>
@@ -118,7 +117,7 @@
        <TextBlock Text="AI authentication"/><ComboBox x:Name="AnswerAuth" SelectedIndex="0" Margin="0,4,0,10"><ComboBoxItem Content="api-key"/><ComboBoxItem Content="Bearer"/></ComboBox>
        </StackPanel><Button x:Name="TestAiButton" Content="Test AI connection" Click="TestAiClick" HorizontalAlignment="Left"/><TextBlock Text="Answer instructions"/><TextBox x:Name="SystemPrompt" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/>
        <Button Content="Save settings" Click="SaveSettingsClick" HorizontalAlignment="Left"/>
-       <TextBlock Text="Calls are saved automatically to Documents/Ansora AI Community/Calls on this PC, including transcripts, answers and request context. Delete these files when no longer needed. Local speech mode keeps audio on this PC; endpoint mode sends it to your transcription service. Questions go to your AI endpoint. Provider retention policies still apply." Foreground="#AAB9D0" FontSize="12" Margin="0,12,0,0"/>
+       <TextBlock Text="Calls are saved automatically to Documents/Ansora AI/Calls on this PC, including transcripts, answers and request context. Delete these files when no longer needed. Local speech mode keeps audio on this PC; endpoint mode sends it to your transcription service. Questions go to your AI endpoint. Provider retention policies still apply." Foreground="#AAB9D0" FontSize="12" Margin="0,12,0,0"/>
       </StackPanel>
      </Expander></ScrollViewer></Grid>
    </Border>

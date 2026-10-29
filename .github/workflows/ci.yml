@@ -17,6 +17,10 @@ jobs:
         shell: pwsh
         run: ./download-model.ps1
       - run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release
+      - name: Verify live-answer history and stream recovery
+        run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release --no-build -- --stream-recovery-check
+      - name: Verify first-text display, stream deadlines and call export
+        run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release --no-build -- --desktop-reliability-check
   source-and-php:
     runs-on: ubuntu-latest
     steps:

@@ -37,6 +37,10 @@ model and hidden API key, then downloads/checks the English speech model separat
 Windows 11 x64 is the tested target. This is an **unsigned Community preview**.
 See the [first-run guide and troubleshooting](docs/WINDOWS_QUICKSTART.md).
 
+The source includes newer answer-refresh, streaming-timeout and export fixes
+than the linked portable preview. [See the changes](CHANGELOG.md) and
+[build from source](#build-and-test) to use them before the next binary release.
+
 ## Features
 
 - Local English transcription of selected speaker/headphone output with Whisper.

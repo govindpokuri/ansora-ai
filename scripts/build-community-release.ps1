@@ -1,4 +1,4 @@
-param([string]$Version = '0.1.14-community.1', [string]$RuntimeVersion = '9.0.22', [string]$OutputDirectory = '')
+param([string]$Version = '0.1.15-community.1', [string]$RuntimeVersion = '9.0.22', [string]$OutputDirectory = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $changes = & git -C $root status --porcelain
