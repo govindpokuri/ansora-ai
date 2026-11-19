@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleIdentifier</key><string>com.ansora-ai.mac.prototype</string>
+    <key>CFBundleName</key><string>Ansora AI</string>
+    <key>CFBundleDisplayName</key><string>Ansora AI · Mac Preview</string>
+    <key>CFBundleExecutable</key><string>AnsoraAI</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>13.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSSpeechRecognitionUsageDescription</key><string>Ansora transcribes the selected call app's audio into live English text using on-device speech recognition.</string>
+    <key>NSAudioCaptureUsageDescription</key><string>Ansora captures audio played by the call app you select, so it can show a live caller transcript. It does not capture your microphone.</string>
+</dict></plist>

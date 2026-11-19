@@ -1,5 +1,13 @@
 # Changelog
 
+## macOS prototype — 2026-11-19
+
+- Added the native SwiftUI/ScreenCaptureKit/Apple Speech prototype and Mac build instructions.
+- Reused hosted email-code login and AI quota APIs; no provider secrets are bundled.
+- Added XCTest coverage, macOS CI and ad-hoc preview artifact packaging.
+- This is a separate preview; physical-Mac audio and permission validation and Developer ID notarization remain release gates.
+
+
 ## 0.1.15-community.1 — source update
 
 - Removed **Keep this on screen**. Reviewing a previous answer no longer pauses automatic answers.

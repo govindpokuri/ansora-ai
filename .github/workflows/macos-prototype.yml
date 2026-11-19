@@ -1,0 +1,36 @@
+name: macOS prototype
+on:
+  workflow_dispatch:
+  push:
+    paths: ['AnsoraMac/**', '.github/workflows/macos-prototype.yml']
+  pull_request:
+    paths: ['AnsoraMac/**', '.github/workflows/macos-prototype.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: AnsoraMac
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test portable core and compile native app
+        run: |
+          swift --version
+          swift test
+          swift build -c release
+      - name: Validate permission metadata
+        run: |
+          plutil -lint Support/Info.plist
+          plutil -lint Support/AnsoraAI.entitlements
+      - name: Bundle local-testing app (ad-hoc signed, not notarized)
+        run: |
+          bash scripts/build-app.sh
+          ditto -c -k --keepParent "dist/Ansora AI.app" dist/AnsoraAI-Mac-Preview.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AnsoraAI-Mac-Preview-arm64
+          path: AnsoraMac/dist/AnsoraAI-Mac-Preview.zip
+          retention-days: 14

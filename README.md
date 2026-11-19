@@ -41,6 +41,20 @@ The source includes newer answer-refresh, streaming-timeout and export fixes
 than the linked portable preview. [See the changes](CHANGELOG.md) and
 [build from source](#build-and-test) to use them before the next binary release.
 
+## macOS prototype — under development
+
+A native SwiftUI Mac prototype is now available in [`AnsoraMac`](AnsoraMac/README.md).
+It includes app-audio capture, on-device English speech transcription, streamed answers,
+reviewed resume context, Keychain login and automatic call notes. This first prototype
+uses the hosted Ansora account/backend; unlike the Windows Community app, it does not
+include bring-your-own-endpoint mode yet. Hosted AI requests require token credits.
+
+The [macOS CI workflow](https://github.com/govindpokuri/ansora-ai/actions/workflows/macos-prototype.yml)
+compiles/tests the code and produces an ad-hoc signed Apple Silicon preview artifact.
+It is **not notarized or approved for customer distribution**. Real-device permission,
+audio and call testing is still required. No Mac screen-share exclusion guarantee is made.
+Windows Community downloads and features below remain unchanged.
+
 ## Features
 
 - Local English transcription of selected speaker/headphone output with Whisper.
