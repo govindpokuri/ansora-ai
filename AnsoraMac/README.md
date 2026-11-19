@@ -37,6 +37,14 @@ The script runs XCTest, compiles the arm64 executable, builds the `.app`, genera
 
 You can open `Package.swift` in Xcode to inspect/build the code. For interactive permission testing use the app produced by the bundle script, or create a signed app target with the same Info.plist and entitlements.
 
+## Preview installation warning and latency testing
+
+The 0.1.x preview is ad-hoc signed and is not Apple-notarized. Rebuilding it through the unsigned CI workflow does not remove Gatekeeper warnings. For a trusted local preview showing an unidentified-developer/not-notarized warning, the Mac owner may use Apple's per-app **System Settings → Privacy & Security → Open Anyway** process after attempting to launch it. This is a user action; do not remove quarantine flags or disable Gatekeeper/SIP. See [Apple's guidance](https://support.apple.com/en-gb/102445). A different warning (for example, malware detected or a damaged app) needs separate investigation.
+
+Version 0.1.3 moves speech callbacks to a dedicated user-initiated queue, prioritizes the audio queue, removes a redundant UI hop and decodes AI stream bytes/JSON off the main actor. These changes reduce avoidable UI contention; an actual improvement in transcription latency has not been measured on a physical Mac. Partial recognition was already enabled. Question stability remains unchanged to avoid increasing premature paid requests.
+
+When comparing delay, distinguish **speech to first transcript**, **transcript to AI request**, and **request to first answer text**. This app captures selected-application output, not microphone input; speaking into your own mic without call audio is not a valid caller-audio test. Please record your Mac chip, macOS version, selected call app, and approximate delay for each stage.
+
 ## First call test
 
 1. Launch the signed app. Accept the service terms yourself, request the code and sign in with an existing Ansora email.

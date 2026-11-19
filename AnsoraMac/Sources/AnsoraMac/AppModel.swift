@@ -70,7 +70,7 @@ struct ReviewedProfile: Codable {
             if let saved = try KeychainStore.load(ReviewedProfile.self, name: "profile") { profile = saved; profileConfirmed = true }
         } catch { message = error.localizedDescription }
         audio.onTranscript = { [weak self] text, final in
-            Task { @MainActor in self?.receiveTranscript(text, final: final) }
+            self?.receiveTranscript(text, final: final)
         }
         audio.onFailure = { [weak self] text in
             Task { @MainActor in

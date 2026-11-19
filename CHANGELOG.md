@@ -1,5 +1,12 @@
 # Changelog
 
+## Mac preview 0.1.3
+
+- Moved speech result callbacks and AI stream decoding away from the main UI actor, prioritized audio processing and removed a redundant transcript UI hop.
+- Added guidance distinguishing preview signing warnings from runtime permissions and transcription/answer delay.
+- Real-device latency measurement and Developer ID notarization remain outstanding.
+
+
 ## 0.1.17-community.1 / Mac preview 0.1.2
 
 - Verbal programming-logic exercises now request a short approach, working code and a small example, respecting confirmed coding languages.

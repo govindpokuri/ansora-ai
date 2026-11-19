@@ -70,9 +70,9 @@ final class BackendClient {
     }
     func logout(_ login: Session) async throws { _ = try await json("auth/logout", token: login.token, body: [:]) }
 
-    // Called on MainActor so streamed chunks update SwiftUI in order.
-    @MainActor func answer(login: Session, callID: UUID, question: String, profile: String,
-                           languages: String, onEvent: (CompletionEvent) -> Void) async throws {
+    // Decode bytes/JSON away from the UI; deliver complete events on MainActor in order.
+    func answer(login: Session, callID: UUID, question: String, profile: String,
+                languages: String, onEvent: @MainActor (CompletionEvent) -> Void) async throws {
         let instructions = """
         Answer the current question directly in simple professional Indian English, usually 25–50 words.
         Sound conversational. Do not restate the question, introduce a project repeatedly, or invent personal experience.
@@ -96,7 +96,7 @@ final class BackendClient {
             try validate(response)
             var finish = "", visible = false
             var roundUsage: Usage?
-            func emit(_ payload: String) throws -> Bool {
+            func emit(_ payload: String) async throws -> Bool {
                 var event = try CompletionParser.parse(payload)
                 if let error = event.error { throw CoreError.message(error) }
                 if let name = event.model { model = name }
@@ -105,16 +105,16 @@ final class BackendClient {
                 if let usage = event.usage { roundUsage = usage; event.usage = previousUsage + usage }
                 if event.usagePending { pendingUsage = true }
                 event.usagePending = pendingUsage
-                onEvent(event)
+                await onEvent(event)
                 return event.done
             }
             if (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type")?.contains("text/event-stream") == true {
                 var decoder = EventStreamDecoder()
                 for try await byte in bytes {
                     try Task.checkCancellation()
-                    if let payload = try decoder.append(byte), try emit(payload) { break }
+                    if let payload = try decoder.append(byte), try await emit(payload) { break }
                 }
-                if let payload = try decoder.finish() { _ = try emit(payload) }
+                if let payload = try decoder.finish() { _ = try await emit(payload) }
             } else {
                 var data = Data()
                 for try await byte in bytes {
@@ -122,11 +122,11 @@ final class BackendClient {
                     data.append(byte)
                 }
                 guard let payload = String(data: data, encoding: .utf8) else { throw CoreError.message("Invalid answer encoding.") }
-                _ = try emit(payload)
+                _ = try await emit(payload)
             }
             guard visible else { throw CoreError.message("No answer text arrived. Check your balance and connection before retrying.") }
             if let usage = roundUsage { previousUsage = previousUsage + usage }
-            else { pendingUsage = true; var pending = CompletionEvent(); pending.usagePending = true; onEvent(pending) }
+            else { pendingUsage = true; var pending = CompletionEvent(); pending.usagePending = true; await onEvent(pending) }
             if finish != "length" { return }
             messages = [["role": "system", "content": instructions], ["role": "user", "content": question],
                         ["role": "assistant", "content": answer],

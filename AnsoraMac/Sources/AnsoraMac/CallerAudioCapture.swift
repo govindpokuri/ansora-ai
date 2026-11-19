@@ -12,10 +12,17 @@ struct CallApplication: Identifiable, Hashable {
 
 // Audio stays in memory and feeds the on-device recognizer. No microphone input.
 final class CallerAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate {
-    var onTranscript: ((String, Bool) -> Void)?
+    var onTranscript: (@MainActor (String, Bool) -> Void)?
     var onFailure: ((String) -> Void)?
     private var stream: SCStream?
-    private let queue = DispatchQueue(label: "com.ansora-ai.caller-audio")
+    private let queue = DispatchQueue(label: "com.ansora-ai.caller-audio", qos: .userInitiated)
+    private let recognitionQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "com.ansora-ai.speech-results"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
     private var recognizer: SFSpeechRecognizer?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var recognition: SFSpeechRecognitionTask?
@@ -43,6 +50,9 @@ final class CallerAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate {
               recognizer.supportsOnDeviceRecognition, recognizer.isAvailable else {
             throw CoreError.message("On-device English speech recognition is unavailable on this Mac. No audio was sent to a cloud recognizer. Check your English speech language resources and try again.")
         }
+        // Speech defaults to the main queue; keep recognition callbacks independent of rendering.
+        recognizer.queue = recognitionQueue
+        recognizer.defaultTaskHint = .dictation
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         guard let application = content.applications.first(where: { $0.processID == applicationID }),
               let display = content.displays.first else {
