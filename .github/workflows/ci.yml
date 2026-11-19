@@ -21,6 +21,8 @@ jobs:
         run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release --no-build -- --stream-recovery-check
       - name: Verify first-text display, stream deadlines and call export
         run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release --no-build -- --desktop-reliability-check
+      - name: Verify available token balance display
+        run: dotnet run --project OverlayCopilot.Tests/OverlayCopilot.Tests.csproj -c Release --no-build -- --balance-ui-check
   source-and-php:
     runs-on: ubuntu-latest
     steps:

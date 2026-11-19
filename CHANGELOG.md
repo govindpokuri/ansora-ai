@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.16-community.1 — source update
+
+- Hosted Windows mode now displays available AI tokens instead of an estimated remaining time.
+- Retains the last balance on refresh failures and identifies its update time in the tooltip.
+
+
 ## macOS preview 0.1.1
 
 - Replaced remaining-time estimates with the available AI token balance in the header.

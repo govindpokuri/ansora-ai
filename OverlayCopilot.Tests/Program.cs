@@ -65,6 +65,7 @@ internal static class Program
             if (args.Contains("--update-badge-check")) { VerifyUpdateBadge(); return 0; }
             if (args.Contains("--update-badge-ui-check")) { RenderWindow(false,true); return 0; }
             if (args.Contains("--desktop-reliability-check")) { VerifyDesktopReliability(); return 0; }
+            if (args.Contains("--balance-ui-check")) { VerifyBalanceUi(); return 0; }
             if (args.Contains("--stream-recovery-check")) { VerifyStreamRecovery(); return 0; }
             if (args.Contains("--options-ui-check")) { RenderWindow(true); return 0; }
             if (args.Contains("--ui-check")) { RenderWindow(); return 0; }
@@ -1191,6 +1192,29 @@ For example, a desktop app might use a worker thread for a long calculation so t
         Check(CallMinutes.Estimate(report with { Answers=new[] { entries[0] with { UsageIncomplete=true } } },30000,now).StartsWith("Estimating"),"small samples remain provisional");
         Check(CallMinutes.Estimate(report with { Answers=entries.Select(a=>a with { UsageIncomplete=true }).ToArray() },30000,now)=="Minutes estimate unavailable","unknown billed usage cannot produce misleading minutes");
         Check(CallMinutes.Estimate(report,0,now)=="No minutes available","zero balance is explicit");
+    }
+    private static void VerifyBalanceUi()
+    {
+        var app = new TestApp(); app.InitializeComponent(); var window = new MainWindow();
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        try
+        {
+            typeof(MainWindow).GetField("commercialMode", flags)!.SetValue(window, true);
+            var balance = typeof(MainWindow).GetField("accountBalance", flags)!;
+            var update = typeof(MainWindow).GetMethod("UpdateTokenSummary", flags)!;
+            var display = (System.Windows.Controls.TextBlock)window.FindName("AvailableTokens");
+            balance.SetValue(window, new CommercialBalance("demo@example.test", 853210, 1000, true)); update.Invoke(window, null);
+            Check(display.Text.Contains(853210L.ToString("N0")) && display.Text.Contains("AI tokens available") && !display.Text.Contains("minutes"), "header shows the available token balance instead of an estimate");
+            typeof(MainWindow).GetField("accountBalanceUpdatedAt", flags)!.SetValue(window, DateTimeOffset.Now);
+            typeof(MainWindow).GetField("accountBalanceStale", flags)!.SetValue(window, true); update.Invoke(window, null);
+            Check(display.Text.Contains(853210L.ToString("N0")) && display.ToolTip.ToString()!.Contains("Refresh failed"), "stale balance remains visible with refresh status");
+            balance.SetValue(window, new CommercialBalance("demo@example.test", 0, 1000, true)); update.Invoke(window, null);
+            Check(display.Text == "0 AI tokens available", "zero available tokens are shown explicitly");
+            balance.SetValue(window, null); update.Invoke(window, null);
+            Check(display.Text == "AI balance unavailable", "missing balance is not shown as a fabricated allowance");
+        }
+        finally { window.Close(); }
+        Console.WriteLine($"PASS: {passed} balance UI checks");
     }
     private static void VerifyDesktopReliability()
     {

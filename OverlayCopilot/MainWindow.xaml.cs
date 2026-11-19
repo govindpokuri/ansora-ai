@@ -55,6 +55,8 @@ public partial class MainWindow : Window
 	private bool updateBusy;
 
 	private CommercialBalance? accountBalance;
+	private DateTimeOffset? accountBalanceUpdatedAt;
+	private bool accountBalanceStale;
 
 	private bool commercialMode;
 
@@ -564,7 +566,10 @@ public partial class MainWindow : Window
 	private void UpdateTokenSummary()
 	{
 		TokenUsage reportedUsage = callArchive.ReportedUsage;
-		MinutesLeft.Text = (commercialMode ? CallMinutes.Estimate(callArchive.Snapshot(), accountBalance?.Available, DateTimeOffset.Now) : "Local AI connection");
+		AvailableTokens.Text = !commercialMode ? "Local AI connection" : accountBalance is null ? "AI balance unavailable" : $"{accountBalance.Available:N0} AI tokens available";
+		AvailableTokens.ToolTip = !commercialMode ? "Direct AI connection; provider usage is shown in Options." : accountBalanceUpdatedAt is { } updated
+			? $"Available account balance. Last updated {updated.LocalDateTime:g}." + (accountBalanceStale ? " Refresh failed; select your account to retry." : " Refreshes after sign-in and AI answers.")
+			: "Sign in to load your AI token balance.";
 		TokenSummary.Text = $"AI tokens · {reportedUsage.Total:N0} · {callArchive.RequestCount} requests" + ((callArchive.MissingUsageRequests > 0) ? " + unknown" : "") + ((callArchive.PendingRequests > 0) ? " · updating" : "");
 		TokenSummary.ToolTip = $"Provider-reported input: {reportedUsage.Input:N0}; output: {reportedUsage.Output:N0}. Usage unavailable for {callArchive.MissingUsageRequests} request(s). Connection checks are excluded. Counts update when the provider reports them.";
 		ExportButton.IsEnabled = callArchive.HasContent && !exportingCall;
@@ -830,15 +835,18 @@ public partial class MainWindow : Window
 		try
 		{
 			var commercialSession = accounts.Load(commercialBaseUrl);
-			accountBalance = null;
 			UpdateAccountHeader(commercialSession?.Email);
 			if (commercialSession is null)
 			{
+				accountBalance = null; accountBalanceUpdatedAt = null; accountBalanceStale = false;
 				CommercialSummary.Text = "Sign in · purchase tokens on the website.";
 				return;
 			}
 			using CancellationTokenSource timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15L));
-			accountBalance = await accountClient.BalanceAsync(commercialSession, timeout.Token);
+			if (accountBalance?.Email != commercialSession.Email) { accountBalance = null; accountBalanceUpdatedAt = null; }
+			var refreshedBalance = await accountClient.BalanceAsync(commercialSession, timeout.Token);
+			if (accounts.Load(commercialBaseUrl)?.Token != commercialSession.Token) return;
+			accountBalance = refreshedBalance; accountBalanceUpdatedAt = DateTimeOffset.Now; accountBalanceStale = false;
 			if (!closing)
 			{
 				UpdateAccountHeader(accountBalance.Email);
@@ -847,6 +855,7 @@ public partial class MainWindow : Window
 		}
 		catch (Exception ex)
 		{
+			accountBalanceStale = true;
 			if (!closing)
 			{
 				CommercialSummary.Text = ((ex is InvalidOperationException) ? ex.Message : "Could not refresh account balance. Select your account to retry.");
