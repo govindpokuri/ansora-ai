@@ -54,7 +54,7 @@ final class Ai {
         $session=(string)($input['session_id']??''); if(!preg_match('/^[a-zA-Z0-9-]{0,64}$/',$session))throw new Problem(422,'Invalid session ID.');
         $purpose=($input['purpose']??'answer')==='resume'?'resume':'answer';
         if($purpose==='answer' && self::wantsCode($input,$safe)) {
-            $rule="For this programming exercise, give a brief plain-English approach followed by complete working code in a labelled fenced block, then a small example. A verbal logic request also requires code. Respect confirmed candidate languages; if none is confirmed, ask which language to use. Do not fabricate experience. For continuation requests output only the missing remainder, preserving any open code fence.";
+            $rule="For this programming exercise, give an approach in at most two short plain-English sentences (no numbered theory list), followed by complete working code in a labelled fenced block and one small input/output example. A verbal logic request also requires code. Respect confirmed candidate languages; if none is confirmed, ask which language to use. Do not fabricate experience. For continuation requests output only the missing remainder, preserving any open code fence.";
             if(($safe[0]['role']??'')==='system')$safe[0]['content'].="\n".$rule;
             else array_unshift($safe,['role'=>'system','content'=>$rule]);
             $bytes+=strlen($rule);
