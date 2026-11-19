@@ -51,6 +51,7 @@ include bring-your-own-endpoint mode yet. Hosted AI requests require token credi
 
 The [macOS CI workflow](https://github.com/govindpokuri/ansora-ai/actions/workflows/macos-prototype.yml)
 compiles/tests the code and produces an ad-hoc signed Apple Silicon preview artifact.
+**[First verified Mac build: nine tests passed; preview artifact available](https://github.com/govindpokuri/ansora-ai/actions/runs/44494749105).**
 It is **not notarized or approved for customer distribution**. Real-device permission,
 audio and call testing is still required. No Mac screen-share exclusion guarantee is made.
 Windows Community downloads and features below remain unchanged.

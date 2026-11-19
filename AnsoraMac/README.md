@@ -1,6 +1,6 @@
 # Ansora AI for macOS — native prototype
 
-This is the first native Mac implementation, separate from the Windows WPF app. It is **not a production release**. Source and packaging scripts were prepared on Windows; a Mac build and permission/audio tests are required before distributing it. Do not publish a Mac download button yet.
+This is the first native Mac implementation, separate from the Windows WPF app. It is **not a production release**. The Apple Silicon app now compiles and bundles successfully on GitHub’s macOS runner, and all nine core tests pass. Interactive permission/audio tests and Developer ID notarization are still required before distributing it to customers. Do not publish a Mac download button yet.
 
 ## Implemented
 
@@ -61,7 +61,7 @@ export NOTARY_PROFILE="ansora-notary"
 bash scripts/notarize.sh
 ```
 
-This builds, signs, submits to Apple, staples the ticket, assesses the app and creates `dist/AnsoraAI-Mac.zip`. Apple approval and all real-device tests must pass before uploading. Script signing/notarization has not been executed on this Windows workspace.
+This builds, signs, submits to Apple, staples the ticket, assesses the app and creates `dist/AnsoraAI-Mac.zip`. Apple approval and all real-device tests must pass before uploading. Ad-hoc bundle signing and signature verification passed in macOS CI. Developer ID signing and notarization have not been executed.
 
 ## Automated checks
 
@@ -70,7 +70,7 @@ swift test
 swift build -c release
 ```
 
-XCTest covers draft revisions, follow-up questions, speech-session resets, greeting suppression, streamed text, usage-only/error/truncation frames and HTML export escaping. `.github/workflows/macos-prototype.yml` at the workspace root is a macOS CI build/test workflow; it has not been pushed or run as part of this task. If this folder moves into another repository, copy that workflow too.
+XCTest covers draft revisions, follow-up questions, speech-session resets, greeting suppression, streamed text, usage-only/error/truncation frames and HTML export escaping. `.github/workflows/macos-prototype.yml` at the repository root runs macOS builds/tests and uploads the `AnsoraAI-Mac-Preview-arm64` artifact. [Verified successful build: 19 November 2026](https://github.com/govindpokuri/ansora-ai/actions/runs/44494749105). Open that run and download the artifact under **Artifacts** while it is retained (14 days). Extract the outer artifact ZIP, then the inner preview ZIP to obtain `Ansora AI.app`. It is ad-hoc signed, not notarized; do not disable macOS security protections to run it. If this folder moves into another repository, copy that workflow too.
 
 ## Not included / release gates
 
