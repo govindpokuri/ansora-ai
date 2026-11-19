@@ -12,12 +12,15 @@ final class Store {
 }
 require dirname(__DIR__).'/src/Ai.php';
 $store=new Store();
-$config=['azure_url'=>'http://127.0.0.1:28182/stream','azure_key'=>'synthetic-upstream-key','azure_model'=>'synthetic-model','max_output_tokens'=>4096,'upstream_timeout'=>5];
+$port=(int)($argv[2]??28182);
+if($port<1024 || $port>65535)throw new \RuntimeException('Invalid loopback test port');
+$config=['azure_url'=>'http://127.0.0.1:'.$port.'/stream','azure_key'=>'synthetic-upstream-key','azure_model'=>'synthetic-model','max_output_tokens'=>4096,'upstream_timeout'=>5];
 $input=['messages'=>[['role'=>'user','content'=>'Explain threads']],'max_tokens'=>4096];
 if(isset($argv[1])) {
-    $config['azure_url']='http://127.0.0.1:28182/inspect-limit'; $config['azure_model_family']='gpt-4.1-mini';
+    $config['azure_url']='http://127.0.0.1:'.$port.'/inspect-limit'; $config['azure_model_family']='gpt-4.1-mini';
     if($argv[1]==='code')$input['messages'][0]['content']='Write a C# palindrome function';
     if($argv[1]==='resume')$input['purpose']='resume';
+    if($argv[1]==='verbal')$input['messages'][0]['content']='Explain palindrome logic';
 }
 ob_start();
 $ai=new Ai($store,$config);

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.17-community.1 / Mac preview 0.1.2
+
+- Verbal programming-logic exercises now request a short approach, working code and a small example, respecting confirmed coding languages.
+- The hosted backend recognizes implicit coding exercises and gives them the 1,600-token code allowance; concept-only and explicit no-code questions retain 320 tokens.
+- Existing hosted desktop builds receive the server-side instruction after the backend patch is deployed.
+
+
 ## 0.1.16-community.1 — source update
 
 - Hosted Windows mode now displays available AI tokens instead of an estimated remaining time.

@@ -6,6 +6,12 @@ if($_SERVER['REQUEST_URI']==='/reject') { http_response_code(401); echo '{"error
 header('Content-Type: text/event-stream'); header('x-ms-request-id: synthetic-provider-request');
 if($_SERVER['REQUEST_URI']==='/inspect-limit') {
     $request=json_decode(file_get_contents('php://input'),true);
+    $last=end($request['messages']);
+    if(($last['content']??'')==='Explain palindrome logic') {
+        if(($request['max_tokens']??0)!==1600 || ($request['messages'][0]['role']??'')!=='system' || !str_contains($request['messages'][0]['content'],'complete working code')) {
+            http_response_code(500); echo '{"error":"verbal coding request lost its instructions or budget"}'; exit;
+        }
+    }
     echo "data: ".json_encode(['choices'=>[['delta'=>['content'=>'Received max_tokens='.($request['max_tokens']??'missing')]]]])."\n\n";
 }
 echo "data: ".json_encode(['choices'=>[['delta'=>['content'=>'A thread shares memory with other threads in its process.']]]])."\n\n";

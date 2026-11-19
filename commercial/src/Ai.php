@@ -5,13 +5,7 @@ namespace CueMitra;
 final class Ai {
     private Store $s; private array $c;
     public function __construct(Store $s,array $c) { $this->s=$s; $this->c=$c; }
-    public static function outputLimit(array $config,array $input,array $messages): int {
-        $requested=max(64,(int)($input['max_tokens']??4096));
-        $ceiling=max(64,(int)$config['max_output_tokens']);
-        // Deployment aliases are arbitrary: explicitly configured family takes precedence.
-        $family=strtolower(trim((string)($config['azure_model_family']??''))) ?: strtolower((string)$config['azure_model']);
-        if(!preg_match('/^gpt-4\.1-mini(?:-\d{4}-\d{2}-\d{2})?$/',$family))return min($ceiling,$requested);
-        if(($input['purpose']??'answer')==='resume')return min($ceiling,$requested,1500);
+    public static function wantsCode(array $input,array $messages): bool {
         $question=''; foreach($messages as $message)if($message['role']==='user')$question=$message['content'];
         if(is_string($input['original_question']??null))$question=$input['original_question'];
         $codingMode=false;
@@ -23,9 +17,23 @@ final class Ai {
             $codingMode=str_starts_with($question,'Solve this coding problem or fix the supplied code.');
             $question=substr($question,$marker+strlen("Pasted question / problem:\n"));
         } elseif(preg_match_all('/^(?:Caller|Call):\s*(.+)$/m',$question,$turns))$question=end($turns[1]);
-        $noCode=(bool)preg_match("/\\b(?:no|without)\\s+(?:any\\s+)?code\\b|\\b(?:do not|don't|dont)\\s+(?:write|include|provide|show|give)\\b.{0,30}\\bcode\\b/i",$question);
+        $noCode=(bool)preg_match("/\\b(?:no|without)\\s+(?:any\\s+)?(?:code|coding|program)\\b|\\b(?:do not|don't|dont)\\s+(?:write|include|provide|show|give)\\b.{0,30}\\b(?:code|program)\\b|\\b(?:theory|pseudocode)\\s+only\\b/i",$question);
         $asksCode=$codingMode || (bool)preg_match('/\bimplement\b|^\s*(?:write|code)\b|\b(?:write|generate|provide|show|give|return|create|fix|debug|correct|refactor|complete|solve)\b.{0,100}\b(?:code|program|function|method|script|query|solution|implementation|algorithm)\b/is',$question);
-        return min($ceiling,$requested,(!$noCode && $asksCode)?1600:320);
+        // Verbal coding exercises often omit the words "write code" entirely.
+        $exercise='(?:palindromes?|palindrom|fibonacci|factorials?|prime(?:\\s+numbers?)?|binary\\s+search|bubble\\s+sort|two\\s+sum|anagrams?|second\\s+(?:largest|highest)|duplicate\\s+(?:numbers?|characters?|elements?))';
+        $logic=(bool)preg_match('/\b(?:logic|algorithm|approach|solve|check|determine|generate|find|print|calculate|how\s+(?:would|do|can|to)|can\s+you|could\s+you)\b.{0,140}\b'.$exercise.'\b/is',$question)
+            || (bool)preg_match('/\b'.$exercise.'\b.{0,80}\b(?:logic|algorithm|program|solution)\b/is',$question);
+        $operation=(bool)preg_match('/\b(?:reverse|sort|merge|rotate|remove|find|count|check|print|detect)\b.{0,70}\b(?:strings?|arrays?|linked\s+lists?|duplicates?|palindromes?|prime\s+numbers?|factorials?|anagrams?)\b/is',$question);
+        $concept=(bool)preg_match('/^\s*(?:what\s+(?:is|are|does)|define|difference\s+between)\b/i',$question);
+        return !$noCode && ($asksCode || $logic || (!$concept && $operation));
+    }
+    public static function outputLimit(array $config,array $input,array $messages): int {
+        $requested=max(64,(int)($input['max_tokens']??4096));
+        $ceiling=max(64,(int)$config['max_output_tokens']);
+        $family=strtolower(trim((string)($config['azure_model_family']??''))) ?: strtolower((string)$config['azure_model']);
+        if(!preg_match('/^gpt-4\.1-mini(?:-\d{4}-\d{2}-\d{2})?$/',$family))return min($ceiling,$requested);
+        if(($input['purpose']??'answer')==='resume')return min($ceiling,$requested,1500);
+        return min($ceiling,$requested,self::wantsCode($input,$messages)?1600:320);
     }
     public static function usage($value): ?array {
         if(!is_array($value))return null;
@@ -45,6 +53,12 @@ final class Ai {
         if($bytes<1 || $bytes>160000)throw new Problem(422,'Conversation is too large.');
         $session=(string)($input['session_id']??''); if(!preg_match('/^[a-zA-Z0-9-]{0,64}$/',$session))throw new Problem(422,'Invalid session ID.');
         $purpose=($input['purpose']??'answer')==='resume'?'resume':'answer';
+        if($purpose==='answer' && self::wantsCode($input,$safe)) {
+            $rule="For this programming exercise, give a brief plain-English approach followed by complete working code in a labelled fenced block, then a small example. A verbal logic request also requires code. Respect confirmed candidate languages; if none is confirmed, ask which language to use. Do not fabricate experience. For continuation requests output only the missing remainder, preserving any open code fence.";
+            if(($safe[0]['role']??'')==='system')$safe[0]['content'].="\n".$rule;
+            else array_unshift($safe,['role'=>'system','content'=>$rule]);
+            $bytes+=strlen($rule);
+        }
         $this->s->limit(hash('sha256','ai:'.$user),30,60);
         $started=false;
         $emit=function(string $data) use(&$started): void {
