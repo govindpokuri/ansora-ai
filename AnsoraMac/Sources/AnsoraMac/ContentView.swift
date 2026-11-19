@@ -59,12 +59,21 @@ private let surface = Color(red: 0.06, green: 0.10, blue: 0.16)
                 Text(model.login?.email ?? "Every question. Your best answer.").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
+            if model.login != nil {
+                VStack(alignment: .trailing, spacing: 3) {
+                    Label(model.tokenBalance, systemImage: "circle.hexagongrid.fill")
+                        .font(.callout.weight(.semibold)).foregroundStyle(accent)
+                    if let note = model.balanceNote { Text(note).font(.caption2).foregroundStyle(.secondary) }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                .help("Available AI tokens from your account. Refreshes after sign-in and completed answers; refresh manually in the menu.")
+            }
             Text(model.status).font(.callout.weight(.semibold)).foregroundStyle(accent)
             Menu {
                 Toggle("Keep window on top", isOn: $model.keepOnTop)
                 Button("Resume and coding languages…") { model.showProfile = true }.disabled(model.login == nil)
                 Button("Refresh balance") { Task { await model.refreshAccount() } }.disabled(model.login == nil)
-                Text(model.minutesLeft)
                 Button("Export a copy…") { Task { await model.exportCopy() } }
                 Button("Open saved call folder") { NSWorkspace.shared.open(CallArchive.directory) }
                 Button("Account and top-up") { model.openWebsite() }

@@ -5,7 +5,7 @@ This is the first native Mac implementation, separate from the Windows WPF app. 
 ## Implemented
 
 - SwiftUI interface with a movable, resizable floating window, readable answers and a background-opacity slider.
-- Existing Ansora email-code login, terms checkbox above Send code, Keychain-backed session storage and account balance.
+- Existing Ansora email-code login, terms checkbox above Send code, Keychain-backed session storage and the available AI token balance displayed in the header. No remaining-time/interview estimate is shown. Balance refreshes after sign-in and completed answers or manually; a failed refresh retains the previous value with its update time.
 - Select a running call application; capture its output audio through ScreenCaptureKit. No microphone capture or video recording is implemented.
 - Apple Speech partial English transcription with on-device recognition required. If local recognition is unavailable, capture does not start; there is no silent cloud fallback. Recognition requests rotate every 50 seconds.
 - Automatic question submission, one paid AI request at a time, and the newest pending question retained while writing. New answer text replaces the previous answer without a hold/pin switch.

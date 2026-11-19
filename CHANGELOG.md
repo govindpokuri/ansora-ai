@@ -1,5 +1,11 @@
 # Changelog
 
+## macOS preview 0.1.1
+
+- Replaced remaining-time estimates with the available AI token balance in the header.
+- Refreshes balance after sign-in and answers; failed refreshes retain the last known balance and show its update time.
+
+
 ## macOS prototype — 2026-11-19
 
 - Added the native SwiftUI/ScreenCaptureKit/Apple Speech prototype and Mac build instructions.

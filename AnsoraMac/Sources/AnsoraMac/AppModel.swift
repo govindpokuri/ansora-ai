@@ -18,6 +18,8 @@ struct ReviewedProfile: Codable {
     @Published var authBusy = false
     @Published var message = ""
     @Published var account: AccountSnapshot?
+    @Published var balanceUpdatedAt: Date?
+    @Published var balanceRefreshFailed = false
     @Published var applications: [CallApplication] = []
     @Published var selectedApplication: Int32 = 0
     @Published var loadingApplications = false
@@ -52,13 +54,14 @@ struct ReviewedProfile: Codable {
     private var persistedRevision = -1
 
     var status: String { starting ? "Starting audio…" : stopping ? "Saving call…" : writing ? "Writing" : listening ? "Listening" : "Ready to read" }
-    var minutesLeft: String {
-        guard let account else { return "Sign in to view balance" }
-        let duration = Date().timeIntervalSince(call.startedAt) / 60
-        let usage = call.usage.total
-        let observed = duration >= 2 && usage > 0
-        let rate = observed ? Double(usage) / duration : 1_000_000.0 / 240
-        return "~\(max(0, Int(Double(account.wallet.available) / rate))) min left · \(observed ? "this call’s rate" : "starting estimate")"
+    var tokenBalance: String {
+        guard let account else { return "AI balance unavailable" }
+        return account.wallet.available.formatted() + " AI tokens available"
+    }
+    var balanceNote: String? {
+        guard balanceRefreshFailed else { return nil }
+        guard let balanceUpdatedAt else { return "Refresh balance to try again" }
+        return "Last updated " + balanceUpdatedAt.formatted(date: .omitted, time: .shortened)
     }
 
     init() {
@@ -101,13 +104,15 @@ struct ReviewedProfile: Codable {
     }
     func refreshAccount() async {
         guard let login else { return }
-        do { account = try await backend.account(login) }
-        catch { message = error.localizedDescription }
+        do {
+            account = try await backend.account(login)
+            balanceUpdatedAt = Date(); balanceRefreshFailed = false
+        } catch { balanceRefreshFailed = true; message = error.localizedDescription }
     }
     func signOut() async {
         await stopListening()
         if let login { try? await backend.logout(login) }
-        do { try KeychainStore.remove("session"); login = nil; account = nil }
+        do { try KeychainStore.remove("session"); login = nil; account = nil; balanceUpdatedAt = nil; balanceRefreshFailed = false }
         catch { message = error.localizedDescription }
     }
     func refreshApplications() async {
