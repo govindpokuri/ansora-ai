@@ -105,9 +105,14 @@ struct ReviewedProfile: Codable {
     func refreshAccount() async {
         guard let login else { return }
         do {
-            account = try await backend.account(login)
+            let snapshot = try await backend.account(login)
+            guard self.login?.token == login.token else { return }
+            account = snapshot
             balanceUpdatedAt = Date(); balanceRefreshFailed = false
-        } catch { balanceRefreshFailed = true; message = error.localizedDescription }
+        } catch {
+            guard self.login?.token == login.token else { return }
+            balanceRefreshFailed = true; message = error.localizedDescription
+        }
     }
     func signOut() async {
         await stopListening()
