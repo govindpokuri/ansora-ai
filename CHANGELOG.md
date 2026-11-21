@@ -1,5 +1,12 @@
 # Changelog
 
+## UPI payment confirmation emails — 2026-11-21
+
+- New bank-verified administrator approvals queue a branded customer receipt with amount, tokens, account details and Windows setup steps.
+- Sends after credit commit using the existing email-provider configuration; provider errors do not reverse paid tokens.
+- Durable audit-based queue/claim/outcome records prevent automatic duplicate sends on approval replay or uncertain provider responses, without a schema migration.
+- Admin approvals show email status separately from payment status. Existing historical approvals are not emailed retroactively.
+
 ## Mobile manual UPI approval desk — 2026-11-21
 
 - Added an OTP-protected phone-friendly administrator page to record bank-verified UPI payments and credit published token packs.

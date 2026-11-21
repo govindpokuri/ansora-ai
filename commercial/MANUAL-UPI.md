@@ -15,6 +15,14 @@ The current catalogue is Starter ₹599 / 500,000 tokens, Standard ₹999 / 1 mi
 
 The server balance is spendable immediately after approval. An open website dashboard refreshes its balance within 15 seconds (and on focus). Already-open desktop builds may need an account refresh or a new sign-in/listening start to display the new balance. No real-time push to old installed apps is claimed.
 
+## Customer confirmation email
+
+New approvals also queue a branded payment confirmation in the same database transaction. Sending starts only after credits commit, using the existing ZeptoMail, SendGrid, SMTP or PHP-mail configuration. No new key or database table is required. The email contains the amount, token pack, tokens added, account email, receipt reference, approval time and setup steps. It links to `/dashboard` for the latest Windows installer instead of an expiring/versioned installer URL.
+
+The admin page shows email status separately from payment success. **Accepted** means the configured transport accepted the message; it does not prove inbox delivery. Email errors cannot undo a paid purchase or its tokens. Approval retries and duplicate bank references do not automatically send extra receipts. A queued receipt not yet claimed can recover on a replay; once sending was claimed, uncertain/time-out results are not automatically retried because the provider may already have accepted them. Check provider activity and handle support follow-up separately. Older approvals are not emailed retroactively.
+
+Receipt queue, claim and outcome events use deterministic IDs in the existing audit table. Local tests write to the private development payment outbox or use a fake transport; they send no external customer mail. `tests/payment-emails.php` covers post-commit delivery, replay protection, provider failures, incomplete delivery tracking, recovery and escaped receipt content.
+
 If a request times out, check Recent approvals and retry with the **same bank reference**. A new request ID still cannot duplicate a credited UPI reference. An administrator-entered RRN alone is not verification; the bank check is essential.
 
 ## iPhone shortcut

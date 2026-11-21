@@ -5,8 +5,8 @@ require dirname(__DIR__).'/src/ManualPayments.php';
 use CueMitra\{Store,ManualPayments,Problem};
 $dsn='mysql:host=127.0.0.1;port=3318;dbname=cuemitra_upi_test;charset=utf8mb4';
 if(getenv('ANSORA_UPI_TEST_DSN')!==$dsn) { fwrite(STDERR,"Set ANSORA_UPI_TEST_DSN to the isolated loopback test database on port 3318.\n"); exit(1); }
-$c=['dsn'=>$dsn,'db_user'=>'root','db_password'=>''];
-$s=new Store($c); $manual=new ManualPayments($s);
+$c=['dsn'=>$dsn,'db_user'=>'root','db_password'=>'','environment'=>'development','mail_mode'=>'log','brand'=>'Ansora AI','base_url'=>'http://127.0.0.1:8199','support_email'=>'support@example.test'];
+$s=new Store($c); $manual=new ManualPayments($s,$c);
 if(($argv[1]??'')==='--worker') {
     $fixture=json_decode(file_get_contents($argv[2]),true,512,JSON_THROW_ON_ERROR);
     try { echo json_encode($manual->approve($fixture['actor'],$fixture['input'])); }

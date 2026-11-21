@@ -1,11 +1,13 @@
 <?php
 declare(strict_types=1);
 namespace CueMitra;
+require_once __DIR__.'/PaymentEmails.php';
 
 // An administrator attests to actual receipt in the merchant bank account.
 // This is not a bank verification API or a customer payment confirmation.
 final class ManualPayments {
-    public function __construct(private Store $s) {}
+    private PaymentEmails $emails;
+    public function __construct(private Store $s,array $config=[],?PaymentEmails $emails=null) { $this->emails=$emails??new PaymentEmails($s,$config); }
     public function account(string $email): array {
         $email=strtolower(trim($email));
         if(!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>254)throw new Problem(422,'Enter the customer account email.');
@@ -14,7 +16,8 @@ final class ManualPayments {
         return ['user'=>$user,'wallet'=>$this->s->wallet($user['id'])];
     }
     public function recent(): array {
-        return $this->s->all("SELECT p.id,u.email,p.amount,p.tokens,p.payment_id,p.created_at FROM purchases p JOIN users u ON u.id=p.user_id WHERE p.order_id LIKE 'upi-manual-%' AND p.status='captured' ORDER BY p.created_at DESC,p.id DESC LIMIT 20");
+        $rows=$this->s->all("SELECT p.id,u.email,p.amount,p.tokens,p.payment_id,p.created_at FROM purchases p JOIN users u ON u.id=p.user_id WHERE p.order_id LIKE 'upi-manual-%' AND p.status='captured' ORDER BY p.created_at DESC,p.id DESC LIMIT 20");
+        $statuses=$this->emails->statuses(array_column($rows,'id'));foreach($rows as &$row)$row['email_status']=$statuses[$row['id']];unset($row);return $rows;
     }
     public static function validate(array $input): array {
         $user=$input['user_id']??null; $email=$input['email']??null; $key=$input['request_id']??null; $rrn=$input['bank_reference']??null;
@@ -42,7 +45,7 @@ final class ManualPayments {
         $v=self::validate($input); $order='upi-manual-'.$v['key']; $payment='upi_'.$v['reference'];
         $this->s->limit(hash('sha256','manual-upi:'.$actor['id']),60,600);
         try {
-            return $this->s->tx(function() use($actor,$v,$order,$payment) {
+            $result=$this->s->tx(function() use($actor,$v,$order,$payment) {
                 $user=$this->s->one('SELECT id,email,status FROM users WHERE id=? FOR UPDATE',[$v['user']]);
                 if(!$user || strtolower($user['email'])!==$v['email'])throw new Problem(409,'The selected account changed. Find the customer again.');
                 if($user['status']!=='active')throw new Problem(409,'This customer account is suspended. Review it in the admin portal first.');
@@ -55,6 +58,7 @@ final class ManualPayments {
                 $this->s->run('UPDATE wallets SET balance=balance+? WHERE user_id=?',[$plan['tokens'],$v['user']]);
                 $this->s->run('INSERT INTO ledger(id,user_id,delta,reference_key,description,created_at) VALUES (?,?,?,?,?,?)',[id(),$v['user'],$plan['tokens'],'purchase:'.$id,'UPI payment manually verified by administrator',$now]);
                 $this->s->audit($actor['id'],'upi_payment_approved',$v['user'],['purchase_id'=>$id,'plan_id'=>$plan['id'],'bank_reference'=>$v['reference'],'amount_paise'=>$plan['price_paise'],'tokens'=>$plan['tokens'],'received_at'=>$v['received_at'],'verification'=>'admin_checked_merchant_bank']);
+                $this->emails->queue($id,$actor['id'],['email'=>strtolower($user['email']),'amount'=>$plan['price_paise'],'tokens'=>$plan['tokens'],'pack'=>$plan['name'],'approved_at'=>$now]);
                 return ['ok'=>true,'credited'=>true,'purchase_id'=>$id,'tokens'=>$plan['tokens'],'wallet'=>$this->s->wallet($v['user'])];
             });
         } catch(\PDOException $e) {
@@ -62,7 +66,11 @@ final class ManualPayments {
             // Concurrent submissions may race across different customer wallets.
             $existing=$this->s->one('SELECT * FROM purchases WHERE payment_id=? OR order_id=?',[$payment,$order]);
             if(!$existing)throw $e;
-            return $this->repeatResult($existing,$v);
+            $result=$this->repeatResult($existing,$v);
         }
+        // Network delivery is strictly after the token-credit transaction commits.
+        try { $result['email']=$this->emails->sendOnce($result['purchase_id']); }
+        catch(\Throwable $e) { error_log('Ansora receipt dispatch unavailable: '.get_class($e));$result['email']=['status'=>'pending']; }
+        return $result;
     }
 }

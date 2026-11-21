@@ -60,7 +60,7 @@ try {
     }
     if(str_starts_with($route,'admin/upi/')) {
         require_once $root.'/src/ManualPayments.php';
-        $manual=new \CueMitra\ManualPayments($s);
+        $manual=new \CueMitra\ManualPayments($s,$c);
         if($route==='admin/upi/account' && $method==='GET') { $respond($manual->account((string)($_GET['email']??''))); exit; }
         if($route==='admin/upi/recent' && $method==='GET') { $respond(['plans'=>Payments::plans(),'payments'=>$manual->recent()]); exit; }
         if($route==='admin/upi/confirm' && $method==='POST') { $respond($manual->approve($u,$input)); exit; }
