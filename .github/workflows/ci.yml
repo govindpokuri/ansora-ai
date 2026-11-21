@@ -34,3 +34,8 @@ jobs:
       - name: PHP syntax (integration tests require a separate database)
         run: find commercial -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 php -l
       - run: php commercial/tests/ai-output-limits.php
+      - run: php commercial/tests/plans.php
+      - name: Validate payment desk JavaScript
+        run: |
+          node --check commercial/public/assets/payment-confirm.js
+          node --check commercial/public/assets/site.js

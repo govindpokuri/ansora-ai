@@ -4,7 +4,7 @@ use CueMitra\{Store,Auth,Payments,Ai,Problem};
 header('X-Content-Type-Options: nosniff'); header('Cache-Control: no-store'); header('Referrer-Policy: same-origin');
 header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
 ini_set('display_errors','0');
-$root=getenv('CUEMITRA_APP_ROOT') ?: dirname(__DIR__).'/cuemitra-private';
+$root=getenv('CUEMITRA_APP_ROOT') ?: dirname(__DIR__).(is_dir(dirname(__DIR__).'/ansora-private')?'/ansora-private':'/cuemitra-private');
 try {
     if(!is_file($root.'/bootstrap.php')) { http_response_code(503); header('Content-Type: application/json'); echo '{"error":"Server installation is incomplete."}'; exit; }
     require_once $root.'/bootstrap.php'; $c=commercial_config();
@@ -24,7 +24,7 @@ try {
     $input=$raw===''?[]:json_decode($raw,true,32,JSON_THROW_ON_ERROR); if(!is_array($input))throw new Problem(422,'JSON object required.');
     $s=new Store($c); $auth=new Auth($s,$c); $payments=new Payments($s,$c);
     $respond=static function(array $data,int $status=200): void { \CueMitra\json($data,$status); };
-    if($route==='config' && $method==='GET') { $respond(['brand'=>$c['brand'],'support_email'=>$c['support_email'],'price_paise'=>$c['pack_price_paise'],'pack_tokens'=>$c['pack_tokens'],'sales_enabled'=>$payments->ready(),'business_name'=>$c['business_name'],'business_address'=>$c['business_address']]); exit; }
+    if($route==='config' && $method==='GET') { $respond(['brand'=>$c['brand'],'support_email'=>$c['support_email'],'price_paise'=>$c['pack_price_paise'],'pack_tokens'=>$c['pack_tokens'],'plans'=>Payments::plans(),'sales_enabled'=>$payments->ready(),'business_name'=>$c['business_name'],'business_address'=>$c['business_address']]); exit; }
     if($route==='health' && $method==='GET') { $s->one('SELECT 1 AS ok'); $respond(['ok'=>true]); exit; }
     $ip=$_SERVER['REMOTE_ADDR']??'unknown';
     if($route==='auth/start' && $method==='POST') { if(($input['terms_accepted']??false)!==true)throw new Problem(422,'Read and accept the terms and privacy notice before signing in.'); $respond($auth->start((string)($input['email']??''),$ip)); exit; }
@@ -57,6 +57,13 @@ try {
     }
     if($route==='admin/account' && $method==='GET') {
         $respond((new \CueMitra\AdminReports($s))->account((string)($_GET['user_id']??''))); exit;
+    }
+    if(str_starts_with($route,'admin/upi/')) {
+        require_once $root.'/src/ManualPayments.php';
+        $manual=new \CueMitra\ManualPayments($s);
+        if($route==='admin/upi/account' && $method==='GET') { $respond($manual->account((string)($_GET['email']??''))); exit; }
+        if($route==='admin/upi/recent' && $method==='GET') { $respond(['plans'=>Payments::plans(),'payments'=>$manual->recent()]); exit; }
+        if($route==='admin/upi/confirm' && $method==='POST') { $respond($manual->approve($u,$input)); exit; }
     }
     if(str_starts_with($route,'admin/') && $method==='POST') {
         if(time()-(int)$u['session_created']>900)throw new Problem(401,'For this administrator action, sign in again with a fresh email code.');

@@ -22,7 +22,7 @@ return [
     'azure_fallback_cooldown' => 30, 'azure_fallback_max_tokens' => 4096,
     'razorpay_key_id' => '', 'razorpay_key_secret' => '', 'razorpay_webhook_secret' => '', // Loaded only from environment / private .env.
     'sales_enabled' => false, // Enable only after legal/business fields, live payments and download are ready.
-    'pack_tokens' => 1000000, 'pack_price_paise' => 59900,
+    'pack_tokens' => 1000000, 'pack_price_paise' => 99900,
     'max_output_tokens' => 4096, 'upstream_timeout' => 55,
     'download_file' => '', // Absolute path OUTSIDE public_html to the commercial setup EXE (no Azure key).
     'download_name' => 'AnsoraAI-Setup.exe',

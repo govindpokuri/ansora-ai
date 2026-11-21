@@ -57,5 +57,8 @@ function commercial_config(): array {
         if($c['azure_url']!=='' && !str_starts_with($c['azure_url'],'https://'))throw new \CueMitra\Problem(503,'Production AI configuration is incomplete.');
         if(!empty($c['azure_fallback_enabled']) && (!str_starts_with((string)($c['azure_fallback_url']??''),'https://') || empty($c['azure_fallback_key']) || empty($c['azure_fallback_model'])))throw new \CueMitra\Problem(503,'Backup AI configuration is incomplete.');
     }
+    // Published catalogue is authoritative even when an older private config has the launch price.
+    $standard=\CueMitra\Payments::plan();
+    $c['pack_tokens']=$standard['tokens']; $c['pack_price_paise']=$standard['price_paise'];
     return $c;
 }

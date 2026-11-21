@@ -3,6 +3,21 @@ declare(strict_types=1);
 namespace CueMitra;
 
 final class Payments {
+    public static function plans(): array {
+        return [
+            ['id'=>'starter','name'=>'Starter','tokens'=>500000,'price_paise'=>59900,'estimated_interviews'=>5],
+            ['id'=>'standard','name'=>'Standard','tokens'=>1000000,'price_paise'=>99900,'estimated_interviews'=>10],
+            ['id'=>'plus','name'=>'Plus','tokens'=>3000000,'price_paise'=>249900,'estimated_interviews'=>30],
+        ];
+    }
+    public static function plan(array $input=[]): array {
+        $id=$input['plan_id']??'standard';
+        foreach(self::plans() as $plan)if($id===$plan['id']) {
+            if(array_key_exists('amount',$input) && $input['amount']!==$plan['price_paise'])throw new Problem(400,'The token pack price is fixed.');
+            return $plan;
+        }
+        throw new Problem(400,'Choose a valid token pack.');
+    }
     private Store $s; private array $c;
     public function __construct(Store $s,array $c) { $this->s=$s; $this->c=$c; }
     private function remote(string $path,?array $body=null): array {
@@ -32,11 +47,11 @@ final class Payments {
     }
     public function order(string $user,array $input=[]): array {
         if(!$this->ready())throw new Problem(503,'Purchases are not open yet. Please check back soon.');
-        $amount=(int)$this->c['pack_price_paise'];
+        $plan=self::plan($input); $amount=$plan['price_paise'];
         if($amount<100)throw new Problem(500,'Pack price is below the payment minimum.');
         if(array_key_exists('amount',$input) && $input['amount']!==$amount)throw new Problem(400,'The token pack price is fixed.');
         $this->s->limit(hash('sha256','orders:'.$user),10,600); $pid=id();
-        $this->s->run('INSERT INTO purchases(id,user_id,amount,tokens,created_at) VALUES (?,?,?,?,?)',[$pid,$user,$amount,$this->c['pack_tokens'],time()]);
+        $this->s->run('INSERT INTO purchases(id,user_id,amount,tokens,created_at) VALUES (?,?,?,?,?)',[$pid,$user,$amount,$plan['tokens'],time()]);
         try { $created=$this->remote('orders',['amount'=>$amount,'currency'=>'INR','receipt'=>$pid,'notes'=>['purchase_id'=>$pid]]); }
         catch(\Throwable $e) { $this->s->run("UPDATE purchases SET status='failed' WHERE id=?",[$pid]); throw $e; }
         $orderId=(string)($created['id']??'');
@@ -45,7 +60,7 @@ final class Payments {
             throw new Problem(500,'Payment order could not be validated.');
         }
         $this->s->run('UPDATE purchases SET order_id=? WHERE id=?',[$orderId,$pid]);
-        return ['order_id'=>$orderId,'amount'=>$amount,'currency'=>'INR','key_id'=>$this->c['razorpay_key_id']];
+        return ['order_id'=>$orderId,'amount'=>$amount,'currency'=>'INR','key_id'=>$this->c['razorpay_key_id'],'plan_id'=>$plan['id'],'tokens'=>$plan['tokens']];
     }
     public function checkoutSignatureValid(string $orderId,string $paymentId,string $signature): bool {
         $secret=(string)($this->c['razorpay_key_secret']??'');

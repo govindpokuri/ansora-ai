@@ -1,5 +1,13 @@
 # Changelog
 
+## Mobile manual UPI approval desk — 2026-11-21
+
+- Added an OTP-protected phone-friendly administrator page to record bank-verified UPI payments and credit published token packs.
+- Purchases, wallet credits, ledger and audit entries commit atomically; duplicate references and concurrent attempts cannot double-credit.
+- Added a Home Screen web-app manifest, recent approvals, customer lookup and read-only dashboard balance refresh.
+- Uses existing tables and the current Starter/Standard/Plus catalogue; no bank verification or public UPI collection integration is implied.
+
+
 ## Mac preview 0.1.3
 
 - Moved speech result callbacks and AI stream decoding away from the main UI actor, prioritized audio processing and removed a redundant transcript UI hop.
